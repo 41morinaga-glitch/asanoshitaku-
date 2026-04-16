@@ -688,11 +688,35 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   addSwipeNav(document.getElementById('top-screen'), {
     onLeft: () => { showScreen('kid-screen'); renderKid(); }
   });
-  // チェック画面: 右スワイプ → TOP / 左スワイプ → もう一方のモードへ
+  // チェック画面: 右スワイプ → TOP
   addSwipeNav(document.getElementById('kid-screen'), {
-    onRight: () => { showScreen('top-screen'); renderTop(); },
-    onLeft: () => { kidMode = kidMode === 'asa' ? 'kaeri' : 'asa'; renderKid(); }
+    onRight: () => { showScreen('top-screen'); renderTop(); }
   });
+
+  // 空白タップ=モード切替、ダブルタップ=TOPへ
+  (function() {
+    let lastTap = 0;
+    const kidScreen = document.getElementById('kid-screen');
+    kidScreen.addEventListener('click', e => {
+      // カード・ボタン・ヘッダのタップは無視
+      if (e.target.closest('.item-card, .kid-header, button')) return;
+      const now = Date.now();
+      if (now - lastTap < 350) {
+        // ダブルタップ → TOP
+        lastTap = 0;
+        showScreen('top-screen'); renderTop();
+      } else {
+        // シングルタップ → モード切替(少し待ってダブルタップか判定)
+        lastTap = now;
+        setTimeout(() => {
+          if (lastTap === now) {
+            kidMode = kidMode === 'asa' ? 'kaeri' : 'asa';
+            renderKid();
+          }
+        }, 360);
+      }
+    });
+  })();
   // おやモード: 右スワイプ → TOP
   addSwipeNav(document.getElementById('parent-screen'), {
     onRight: () => { editingId = null; showScreen('top-screen'); renderTop(); }
