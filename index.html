@@ -951,10 +951,12 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   // === Bottom Nav ===
   const bnav = document.getElementById('bottomNav');
   window.addEventListener('scroll', () => {
-    const scrollBottom = window.scrollY + window.innerHeight;
+    const y = window.scrollY;
+    const scrollBottom = y + window.innerHeight;
     const docHeight = document.documentElement.scrollHeight;
-    // ページの最下端に到達した時のみ表示(誤差5px許容)
-    if (scrollBottom >= docHeight - 5) bnav.classList.add('show');
+    const isScrollable = docHeight > window.innerHeight + 50;
+    // スクロール可能なページで、かつ下端到達時のみ表示
+    if (isScrollable && y > 50 && scrollBottom >= docHeight - 5) bnav.classList.add('show');
     else bnav.classList.remove('show');
   }, { passive: true });
   document.getElementById('bnAsa').addEventListener('click', () => { kidMode='asa'; showScreen('kid-screen'); renderKid(); bnav.classList.remove('show'); });
