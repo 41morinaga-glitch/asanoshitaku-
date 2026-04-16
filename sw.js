@@ -1,4 +1,4 @@
-const CACHE_NAME = 'asajunbi-v3';
+const CACHE_NAME = 'asajunbi-v4';
 const ASSETS = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
