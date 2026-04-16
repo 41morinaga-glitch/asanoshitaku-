@@ -20,12 +20,12 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .screen { display: none; min-height: 100vh; flex-direction: column; }
 .screen.active { display: flex; }
 
-#kid-screen { padding: 0 12px 40px; }
+#kid-screen { padding: 0 12px 70px; }
 .greeting { text-align: center; margin-bottom: 6px; }
 .greeting h1 { font-size: clamp(20px, 5vw, 28px); color: var(--accent); }
 .greeting p { font-size: clamp(13px, 3.2vw, 17px); color: var(--text-light); }
 /* TOP Screen */
-#top-screen { padding: 16px 16px 40px; align-items: center; justify-content: center; }
+#top-screen { padding: 16px 16px 70px; align-items: center; justify-content: center; }
 #top-screen .greeting { margin-top: 0; margin-bottom: 16px; }
 .top-menu { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 360px; }
 .top-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 20px; border-radius: 20px; border: none; cursor: pointer; text-align: center; transition: transform 0.15s; width: 100%; }
@@ -41,8 +41,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .top-parent .top-sub { color: #999; }
 
 /* Bottom nav */
-.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #eee; display: flex; padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); z-index: 50; transform: translateY(100%); transition: transform 0.3s; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); }
-.bottom-nav.show { transform: translateY(0); }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #eee; display: flex; padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); z-index: 50; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); }
 .bottom-nav button { flex: 1; border: none; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; }
 .bottom-nav .bnav-icon { font-size: 20px; }
 .bottom-nav .bnav-label { font-size: 10px; color: #999; font-weight: 600; }
@@ -929,17 +928,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
   // === Bottom Nav ===
   const bnav = document.getElementById('bottomNav');
-  window.addEventListener('scroll', () => {
-    const y = window.scrollY;
-    const scrollBottom = y + window.innerHeight;
-    const docHeight = document.documentElement.scrollHeight;
-    const isScrollable = docHeight > window.innerHeight + 100;
-    if (isScrollable && y > 100 && scrollBottom >= docHeight - 5) bnav.classList.add('show');
-    else bnav.classList.remove('show');
-  }, { passive: true });
-  document.getElementById('bnAsa').addEventListener('click', () => { kidMode='asa'; showScreen('kid-screen'); renderKid(); bnav.classList.remove('show'); });
-  document.getElementById('bnKaeri').addEventListener('click', () => { kidMode='kaeri'; showScreen('kid-screen'); renderKid(); bnav.classList.remove('show'); });
-  document.getElementById('bnParent').addEventListener('click', () => { showPin(showParent); bnav.classList.remove('show'); });
+  document.getElementById('bnAsa').addEventListener('click', () => { kidMode='asa'; showScreen('kid-screen'); renderKid(); });
+  document.getElementById('bnKaeri').addEventListener('click', () => { kidMode='kaeri'; showScreen('kid-screen'); renderKid(); });
+  document.getElementById('bnParent').addEventListener('click', () => { showPin(showParent); });
   document.getElementById('bnHow').addEventListener('click', () => {
     showScreen('top-screen'); renderTop(false);
     bnav.classList.remove('show');
@@ -947,7 +938,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     if (!hb.classList.contains('show')) hb.classList.add('show');
     setTimeout(() => hb.scrollIntoView({ behavior:'smooth' }), 100);
   });
-  document.getElementById('bnTop').addEventListener('click', () => { window.scrollTo({ top:0, behavior:'smooth' }); bnav.classList.remove('show'); });
+  document.getElementById('bnTop').addEventListener('click', () => { window.scrollTo({ top:0, behavior:'smooth' }); });
 
   // === Init ===
   function renderDateWeatherTop(w) {
