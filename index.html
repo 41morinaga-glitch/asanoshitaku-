@@ -390,7 +390,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   let lang = localStorage.getItem('asajunbi_lang') || 'ja';
   function t(key) { return (I18N[lang] || I18N.ja)[key] || (I18N.ja)[key] || key; }
 
-  const KEYS = { items:'asajunbi_items2', today:'asajunbi_today', history:'asajunbi_history', pin:'asajunbi_pin', settings:'asajunbi_settings', badges:'asajunbi_badges', timetable:'asajunbi_timetable', profiles:'asajunbi_profiles', currentProfile:'asajunbi_curprofile' };
+  const KEYS = { items:'asajunbi_items2', today:'asajunbi_today', history:'asajunbi_history', pin:'asajunbi_pin', settings:'asajunbi_settings', badges:'asajunbi_badges', timetable:'asajunbi_timetable', profiles:'asajunbi_profiles', currentProfile:'asajunbi_curprofile', sync:'asajunbi_sync' };
+  const GIST_FILE = 'asanoshitaku.json';
 
   const SUBJECT_LIST = [
     {emoji:'📖',name:'こくご'},{emoji:'🔢',name:'さんすう'},{emoji:'🌍',name:'せいかつ'},{emoji:'🎵',name:'おんがく'},
@@ -454,6 +455,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
   let items=[], today={date:'',checked:[],returnChecked:[]}, history=[], pin='1234', settings={childName:'',voiceEnabled:true,notifyMorning:'',notifyEvening:''};
   let badges=[], timetable={}, profiles=[], currentProfileId='default';
+  let syncConfig=null, pushTimer=null;
   let currentTab='manage', calMonth=null, pinBuffer='', editingId=null;
   let kidMode = 'asa'; // 'asa' or 'kaeri'
 
@@ -481,15 +483,16 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     try { profiles = JSON.parse(localStorage.getItem(KEYS.profiles)) || []; } catch(e) { profiles=[]; }
     if (!profiles.length) profiles = [{id:'default',name:settings.childName||'',emoji:'👧'}];
     try { currentProfileId = localStorage.getItem(KEYS.currentProfile) || 'default'; } catch(e) { currentProfileId='default'; }
+    try { syncConfig = JSON.parse(localStorage.getItem(KEYS.sync)) || null; } catch(e) { syncConfig=null; }
   }
-  function saveItems() { localStorage.setItem(KEYS.items, JSON.stringify(items)); }
+  function saveItems() { localStorage.setItem(KEYS.items, JSON.stringify(items)); scheduleSyncPush(); }
   function saveBadges() { localStorage.setItem(KEYS.badges, JSON.stringify(badges)); }
-  function saveToday() { localStorage.setItem(KEYS.today, JSON.stringify(today)); }
-  function saveHistory() { localStorage.setItem(KEYS.history, JSON.stringify(history)); }
+  function saveToday() { localStorage.setItem(KEYS.today, JSON.stringify(today)); scheduleSyncPush(); }
+  function saveHistory() { localStorage.setItem(KEYS.history, JSON.stringify(history)); scheduleSyncPush(); }
   function savePin() { localStorage.setItem(KEYS.pin, pin); }
-  function saveSettings() { localStorage.setItem(KEYS.settings, JSON.stringify(settings)); }
-  function saveTimetable() { localStorage.setItem(KEYS.timetable, JSON.stringify(timetable)); }
-  function saveProfiles() { localStorage.setItem(KEYS.profiles, JSON.stringify(profiles)); }
+  function saveSettings() { localStorage.setItem(KEYS.settings, JSON.stringify(settings)); scheduleSyncPush(); }
+  function saveTimetable() { localStorage.setItem(KEYS.timetable, JSON.stringify(timetable)); scheduleSyncPush(); }
+  function saveProfiles() { localStorage.setItem(KEYS.profiles, JSON.stringify(profiles)); scheduleSyncPush(); }
   function saveCurrentProfile() { localStorage.setItem(KEYS.currentProfile, currentProfileId); }
 
   function dailyReset() {
@@ -972,6 +975,22 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       </div>
     </div>
     <div class="setting-group">
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <label>☁️ データどうき (Gist)</label>
+        <div style="font-size:11px;color:#999;">おやと こどもの スマホで データを きょうゆう</div>
+        <div style="width:100%;">
+          <div id="syncStatus" style="font-size:12px;color:${syncConfig?'#2E7D32':'#999'};margin-bottom:6px;">${syncConfig?'☁️ せつぞくずみ (Gist: '+syncConfig.gistId.slice(0,8)+'...)':'みせつぞく'}</div>
+          <input type="password" id="sSyncToken" placeholder="GitHub トークン (gist けんげん)" value="${syncConfig?syncConfig.token:''}" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:6px;">
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-primary" id="sSyncConnect" style="flex:1;margin:0;padding:8px;font-size:13px;">せつぞく</button>
+            <button class="btn btn-secondary" id="sSyncPull" style="flex:1;margin:0;padding:8px;font-size:13px;" ${syncConfig?'':'disabled'}>とりこみ</button>
+            <button class="btn btn-secondary" id="sSyncPush" style="flex:1;margin:0;padding:8px;font-size:13px;" ${syncConfig?'':'disabled'}>おくる</button>
+          </div>
+          ${syncConfig?'<button class="btn btn-danger" id="sSyncDisconnect" style="font-size:12px;padding:8px;">せつだん</button>':''}
+        </div>
+      </div>
+    </div>
+    <div class="setting-group">
       <div class="setting-row">
         <label>${t('lang')}</label>
         <select id="sLang" style="padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
@@ -1020,6 +1039,37 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       renderParentTab();
     });
     pm.appendChild(addP);
+
+    // Sync handlers
+    document.getElementById('sSyncConnect').addEventListener('click', async () => {
+      const token = document.getElementById('sSyncToken').value.trim();
+      if (!token) { alert('トークンを いれてください'); return; }
+      document.getElementById('syncStatus').textContent = 'せつぞくちゅう...';
+      try {
+        const gistId = await syncFindOrCreateGist(token);
+        syncConfig = { token, gistId };
+        saveSyncConfig();
+        await syncPull();
+        alert('せつぞく できました！');
+        renderParentTab();
+      } catch (err) {
+        alert('エラー: ' + err.message);
+        document.getElementById('syncStatus').textContent = 'せつぞく しっぱい';
+      }
+    });
+    if (document.getElementById('sSyncPull')) {
+      document.getElementById('sSyncPull').addEventListener('click', async () => { await syncPull(); renderTop(false); alert('とりこみ かんりょう'); renderParentTab(); });
+    }
+    if (document.getElementById('sSyncPush')) {
+      document.getElementById('sSyncPush').addEventListener('click', async () => { await syncPush(); alert('おくり かんりょう'); });
+    }
+    if (document.getElementById('sSyncDisconnect')) {
+      document.getElementById('sSyncDisconnect').addEventListener('click', () => {
+        if (!confirm('どうきを せつだん しますか？')) return;
+        syncConfig = null; saveSyncConfig();
+        renderParentTab();
+      });
+    }
 
     document.getElementById('sSave').addEventListener('click',()=>{
       settings.childName = document.getElementById('sName').value.trim();
@@ -1202,6 +1252,94 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   });
   document.getElementById('bnTop').addEventListener('click', () => { window.scrollTo({ top:0, behavior:'smooth' }); });
 
+  // === Gist Sync ===
+  function saveSyncConfig() {
+    if (syncConfig) localStorage.setItem(KEYS.sync, JSON.stringify(syncConfig));
+    else localStorage.removeItem(KEYS.sync);
+  }
+
+  function getAllSyncData() {
+    return { items, today, history, settings, timetable, profiles, badges, updatedAt: Date.now() };
+  }
+
+  function applySyncData(data) {
+    if (!data) return;
+    if (Array.isArray(data.items) && data.items.length) { items = data.items; items.forEach(it => { if (!it.days) it.days = ALL_DAYS.slice(); }); localStorage.setItem(KEYS.items, JSON.stringify(items)); }
+    if (data.today) { today = data.today; if (!today.returnChecked) today.returnChecked = []; localStorage.setItem(KEYS.today, JSON.stringify(today)); }
+    if (Array.isArray(data.history)) { history = data.history; localStorage.setItem(KEYS.history, JSON.stringify(history)); }
+    if (data.settings) { settings = data.settings; localStorage.setItem(KEYS.settings, JSON.stringify(settings)); }
+    if (data.timetable) { timetable = data.timetable; localStorage.setItem(KEYS.timetable, JSON.stringify(timetable)); }
+    if (Array.isArray(data.profiles) && data.profiles.length) { profiles = data.profiles; localStorage.setItem(KEYS.profiles, JSON.stringify(profiles)); }
+    if (Array.isArray(data.badges)) { badges = data.badges; localStorage.setItem(KEYS.badges, JSON.stringify(badges)); }
+  }
+
+  async function syncFindOrCreateGist(token) {
+    const listRes = await fetch('https://api.github.com/gists?per_page=100', {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!listRes.ok) throw new Error('認証失敗 (' + listRes.status + ')');
+    const gists = await listRes.json();
+    const matching = gists.filter(g => g.files && g.files[GIST_FILE]);
+    if (matching.length) {
+      matching.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+      return matching[0].id;
+    }
+    // 新規作成(現在のデータで初期化)
+    const createRes = await fetch('https://api.github.com/gists', {
+      method: 'POST',
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: 'あさのじゅんび データ', public: false, files: { [GIST_FILE]: { content: JSON.stringify(getAllSyncData(), null, 2) } } })
+    });
+    if (!createRes.ok) throw new Error('Gist作成失敗');
+    return (await createRes.json()).id;
+  }
+
+  async function syncPull() {
+    if (!syncConfig) return;
+    try {
+      const res = await fetch('https://api.github.com/gists/' + syncConfig.gistId, {
+        headers: { 'Authorization': 'token ' + syncConfig.token, 'Accept': 'application/vnd.github+json' }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const file = data.files && data.files[GIST_FILE];
+      if (!file || !file.content) return;
+      const parsed = JSON.parse(file.content);
+      const remoteAt = parsed.updatedAt || 0;
+      const localAt = parseInt(localStorage.getItem('asajunbi_updatedAt') || '0');
+      // リモートが空でローカルにデータがある場合は上書きしない
+      if ((!parsed.items || !parsed.items.length) && items.length > 0) {
+        await syncPush();
+        return;
+      }
+      if (remoteAt > localAt) {
+        applySyncData(parsed);
+        localStorage.setItem('asajunbi_updatedAt', String(remoteAt));
+        dailyReset();
+        renderTop(false);
+      }
+    } catch (e) { console.log('sync pull error', e); }
+  }
+
+  async function syncPush() {
+    if (!syncConfig) return;
+    try {
+      const syncData = getAllSyncData();
+      const res = await fetch('https://api.github.com/gists/' + syncConfig.gistId, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'token ' + syncConfig.token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(syncData, null, 2) } } })
+      });
+      if (res.ok) localStorage.setItem('asajunbi_updatedAt', String(syncData.updatedAt));
+    } catch (e) { console.log('sync push error', e); }
+  }
+
+  function scheduleSyncPush() {
+    if (!syncConfig) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(syncPush, 2000);
+  }
+
   // === Notifications ===
   let notifyTimers = [];
   function setupNotifications() {
@@ -1243,6 +1381,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   load(); dailyReset(); renderTop(); renderDateWeatherTop(null);
   fetchWeather().then(w=>{if(w)renderDateWeatherTop(w);});
   setupNotifications();
+  if (syncConfig) syncPull();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && syncConfig) syncPull(); });
   // === Pull to Refresh ===
   (function() {
     const ptr = document.getElementById('ptrIndicator');
