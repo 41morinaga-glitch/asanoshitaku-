@@ -20,15 +20,30 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .screen { display: none; min-height: 100vh; flex-direction: column; }
 .screen.active { display: flex; }
 
-#kid-screen { padding: 16px 12px 80px; }
+#kid-screen { padding: 0 12px 40px; }
 .greeting { text-align: center; margin-bottom: 6px; }
 .greeting h1 { font-size: clamp(20px, 5vw, 28px); color: var(--accent); }
 .greeting p { font-size: clamp(13px, 3.2vw, 17px); color: var(--text-light); }
-.mode-tabs { display: flex; gap: 6px; margin: 8px 0; }
-.mode-tab { flex: 1; padding: 10px; border-radius: 12px; border: 2px solid #FFE0B2; background: #fff; font-size: clamp(13px, 3.2vw, 15px); font-weight: 700; color: var(--text-light); cursor: pointer; text-align: center; transition: all 0.2s; }
-.mode-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.mode-tab[data-mode="kaeri"].active { background: #42A5F5; border-color: #42A5F5; }
-.progress-wrap { margin: 10px 0 16px; padding: 0 4px; }
+/* TOP Screen */
+#top-screen { padding: 16px 16px 40px; }
+.top-menu { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; }
+.top-btn { display: flex; align-items: center; gap: 14px; padding: 20px; border-radius: 20px; border: none; cursor: pointer; text-align: left; transition: transform 0.15s; }
+.top-btn:active { transform: scale(0.97); }
+.top-icon { font-size: 40px; flex-shrink: 0; }
+.top-label { font-size: clamp(17px, 4.5vw, 22px); font-weight: 800; display: block; }
+.top-sub { font-size: 12px; font-weight: 500; display: block; margin-top: 2px; }
+.top-asa { background: linear-gradient(135deg, #FFAB91, #FF7043); color: #fff; }
+.top-asa .top-sub { color: rgba(255,255,255,0.8); }
+.top-kaeri { background: linear-gradient(135deg, #90CAF9, #42A5F5); color: #fff; }
+.top-kaeri .top-sub { color: rgba(255,255,255,0.8); }
+.top-parent { background: #F5F5F5; color: var(--text); }
+.top-parent .top-sub { color: #999; }
+
+/* Kid Header */
+.kid-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 4px; }
+.kid-header button { background: none; border: none; font-size: 14px; color: var(--text-light); cursor: pointer; padding: 6px 4px; }
+.kid-header span { font-size: clamp(16px, 4vw, 20px); font-weight: 700; }
+.progress-wrap { margin: 4px 0 12px; padding: 0 12px; }
 .progress-bar { height: 20px; background: #F5E6D3; border-radius: 10px; overflow: hidden; position: relative; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, var(--progress-from), var(--progress-to)); border-radius: 10px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
 .progress-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text); }
@@ -46,7 +61,6 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .item-card.entering { animation: cardIn 0.4s ease-out both; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-.parent-link { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); padding: 10px 24px; background: rgba(0,0,0,0.04); border-radius: 20px; border: none; color: #BCAAA4; font-size: 12px; cursor: pointer; z-index: 10; }
 
 #pin-screen { align-items: center; justify-content: center; padding: 20px; background: rgba(93,64,55,0.95); position: fixed; inset: 0; z-index: 200; }
 .pin-box { background: #fff; border-radius: 20px; padding: 30px; width: 100%; max-width: 300px; text-align: center; }
@@ -133,14 +147,35 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 </head>
 <body>
 
-<div class="screen active" id="kid-screen">
-  <div class="greeting">
-    <h1 id="greetText">🌅 おはよう！</h1>
-    <p id="dateWeather">よみこみちゅう...</p>
+<!-- TOP Screen -->
+<div class="screen active" id="top-screen">
+  <div class="greeting" style="margin-top:20px;">
+    <h1 id="topGreet">🌅 おはよう！</h1>
+    <p id="topDateWeather">よみこみちゅう...</p>
   </div>
-  <div class="mode-tabs">
-    <button class="mode-tab active" id="modeAsa" data-mode="asa">🎒 あさのじゅんび</button>
-    <button class="mode-tab" id="modeKaeri" data-mode="kaeri">🏠 もちかえりチェック</button>
+  <div class="top-menu">
+    <button class="top-btn top-asa" id="goAsa">
+      <span class="top-icon">🎒</span>
+      <span class="top-label">あさの じゅんび</span>
+      <span class="top-sub" id="topAsaStatus"></span>
+    </button>
+    <button class="top-btn top-kaeri" id="goKaeri">
+      <span class="top-icon">🏠</span>
+      <span class="top-label">もちかえり チェック</span>
+      <span class="top-sub" id="topKaeriStatus"></span>
+    </button>
+    <button class="top-btn top-parent" id="goParent">
+      <span class="top-icon">🔒</span>
+      <span class="top-label">おとなモード</span>
+    </button>
+  </div>
+</div>
+
+<!-- Kid Mode -->
+<div class="screen" id="kid-screen">
+  <div class="kid-header">
+    <button id="kidBack">← もどる</button>
+    <span id="kidTitle">🎒 あさのじゅんび</span>
   </div>
   <div class="progress-wrap">
     <div class="progress-bar">
@@ -149,7 +184,6 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     </div>
   </div>
   <div class="item-grid" id="itemGrid"></div>
-  <button class="parent-link" id="parentLink">🔒 おとなモード</button>
 </div>
 
 <div class="screen" id="pin-screen">
@@ -318,14 +352,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   function getCheckedArr() { return kidMode === 'asa' ? today.checked : today.returnChecked; }
 
   function renderKid() {
-    const hour = new Date().getHours();
-    const ge = hour<10?'🌅':hour<17?'☀️':'🌙';
-    const gw = hour<10?'おはよう':hour<17?'こんにちは':'こんばんは';
-    const nm = settings.childName ? settings.childName+'ちゃん' : '';
-    document.getElementById('greetText').textContent = ge+' '+gw+'！'+nm;
-    // Mode tabs
-    document.getElementById('modeAsa').classList.toggle('active', kidMode==='asa');
-    document.getElementById('modeKaeri').classList.toggle('active', kidMode==='kaeri');
+    document.getElementById('kidTitle').textContent = kidMode==='asa' ? '🎒 あさのじゅんび' : '🏠 もちかえりチェック';
     const active = todayItems();
     const checkedArr = getCheckedArr();
     const grid = document.getElementById('itemGrid');
@@ -597,15 +624,41 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     document.getElementById('sReset').addEventListener('click',()=>{if(!confirm('ぜんぶのデータを けしますか？'))return;if(!confirm('ほんとうに いいですか？'))return;Object.values(KEYS).forEach(k=>localStorage.removeItem(k));location.reload();});
   }
 
+  // === TOP Screen ===
+  function renderTop() {
+    const hour = new Date().getHours();
+    const ge = hour<10?'🌅':hour<17?'☀️':'🌙';
+    const gw = hour<10?'おはよう':hour<17?'こんにちは':'こんばんは';
+    const nm = settings.childName ? settings.childName+'ちゃん' : '';
+    document.getElementById('topGreet').textContent = ge+' '+gw+'！'+nm;
+    // ステータス表示
+    const active = todayItems();
+    const asaDone = today.checked.filter(id=>active.some(it=>it.id===id)).length;
+    const kaeriDone = today.returnChecked.filter(id=>active.some(it=>it.id===id)).length;
+    const total = active.length;
+    document.getElementById('topAsaStatus').textContent = total ? asaDone+'/'+total+(asaDone>=total?' ✨かんぺき！':'') : '';
+    document.getElementById('topKaeriStatus').textContent = total ? kaeriDone+'/'+total+(kaeriDone>=total?' ✨かんぺき！':'') : '';
+  }
+
   // === Events ===
-  document.getElementById('parentLink').addEventListener('click',()=>showPin(showParent));
-  document.getElementById('parentBack').addEventListener('click',()=>{editingId=null;showScreen('kid-screen');renderKid();});
+  document.getElementById('goAsa').addEventListener('click',()=>{ kidMode='asa'; showScreen('kid-screen'); renderKid(); });
+  document.getElementById('goKaeri').addEventListener('click',()=>{ kidMode='kaeri'; showScreen('kid-screen'); renderKid(); });
+  document.getElementById('goParent').addEventListener('click',()=>showPin(showParent));
+  document.getElementById('kidBack').addEventListener('click',()=>{ showScreen('top-screen'); renderTop(); });
+  document.getElementById('parentBack').addEventListener('click',()=>{editingId=null;showScreen('top-screen');renderTop();});
   document.querySelectorAll('.parent-tab').forEach(t=>t.addEventListener('click',()=>{currentTab=t.dataset.tab;editingId=null;renderParentTab();}));
-  document.querySelectorAll('.mode-tab').forEach(t=>t.addEventListener('click',()=>{kidMode=t.dataset.mode;renderKid();}));
 
   // === Init ===
-  load(); dailyReset(); renderDateWeather(null); renderKid();
-  fetchWeather().then(w=>{if(w)renderDateWeather(w);});
+  function renderDateWeatherTop(w) {
+    const d = new Date();
+    const dow = DOW_NAMES[d.getDay()];
+    const el = document.getElementById('topDateWeather');
+    let t = (d.getMonth()+1)+'がつ '+d.getDate()+'にち '+dow+'ようび';
+    if (w) t += '　'+w.emoji+' '+w.temp+'℃ '+w.text;
+    el.textContent = t;
+  }
+  load(); dailyReset(); renderTop(); renderDateWeatherTop(null);
+  fetchWeather().then(w=>{if(w)renderDateWeatherTop(w);});
 })();
 </script>
 </body>
