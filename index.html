@@ -300,7 +300,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 <div class="screen" id="pin-screen">
   <div class="pin-box">
     <h2>🔑 パスワード</h2>
-    <div class="pin-dots" id="pinDots"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+    <div class="pin-dots" id="pinDots"></div>
     <div class="pin-keys" id="pinKeys"></div>
   </div>
 </div>
@@ -721,21 +721,36 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
   // === PIN ===
   function showPin(cb) {
-    pinBuffer=''; showScreen('pin-screen'); updatePinDots();
+    pinBuffer=''; showScreen('pin-screen');
+    renderPinDots();
     const keys=document.getElementById('pinKeys'); keys.innerHTML='';
     [1,2,3,4,5,6,7,8,9].forEach(n=>{const b=document.createElement('button');b.className='pin-key';b.textContent=n;b.addEventListener('click',()=>pinInput(String(n),cb));keys.appendChild(b);});
-    const cancel=document.createElement('button');cancel.className='pin-key cancel';cancel.textContent='もどる';cancel.addEventListener('click',()=>showScreen('kid-screen'));keys.appendChild(cancel);
+    const cancel=document.createElement('button');cancel.className='pin-key cancel';cancel.textContent='もどる';cancel.addEventListener('click',()=>showScreen('top-screen'));keys.appendChild(cancel);
     const zero=document.createElement('button');zero.className='pin-key';zero.textContent='0';zero.addEventListener('click',()=>pinInput('0',cb));keys.appendChild(zero);
     const del=document.createElement('button');del.className='pin-key del';del.textContent='⌫';del.addEventListener('click',()=>{pinBuffer=pinBuffer.slice(0,-1);updatePinDots();});keys.appendChild(del);
   }
-  function pinInput(d,cb) {
-    if (pinBuffer.length>=4) return; pinBuffer+=d; updatePinDots();
-    if (pinBuffer.length===4) {
-      if (pinBuffer===pin) cb();
-      else { document.querySelectorAll('#pinDots .pin-dot').forEach(d=>d.classList.add('error')); setTimeout(()=>{pinBuffer='';updatePinDots();document.querySelectorAll('#pinDots .pin-dot').forEach(d=>d.classList.remove('error'));},500); }
+  function renderPinDots() {
+    const container = document.getElementById('pinDots');
+    container.innerHTML = '';
+    for (let i = 0; i < pin.length; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'pin-dot';
+      container.appendChild(dot);
     }
   }
-  function updatePinDots() { document.querySelectorAll('#pinDots .pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<pinBuffer.length)); }
+  function pinInput(d, cb) {
+    if (pinBuffer.length >= pin.length) return;
+    pinBuffer += d;
+    updatePinDots();
+    if (pinBuffer.length === pin.length) {
+      if (pinBuffer === pin) cb();
+      else {
+        document.querySelectorAll('#pinDots .pin-dot').forEach(dot => dot.classList.add('error'));
+        setTimeout(() => { pinBuffer = ''; updatePinDots(); document.querySelectorAll('#pinDots .pin-dot').forEach(dot => dot.classList.remove('error')); }, 500);
+      }
+    }
+  }
+  function updatePinDots() { document.querySelectorAll('#pinDots .pin-dot').forEach((dot, i) => dot.classList.toggle('filled', i < pinBuffer.length)); }
 
   // === Parent Mode ===
   function showParent() { showScreen('parent-screen'); renderParentTab(); }
@@ -962,7 +977,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       <div class="setting-row"><label>🌙 ゆうがたの つうち</label><input type="time" id="sNotifyE" value="${notifyE}" style="width:120px;"></div>
     </div>
     <div class="setting-group">
-      <div class="setting-row"><label>🔑 パスワード (4けた)</label><input type="password" id="sPin" maxlength="4" inputmode="numeric" value="${pin}" placeholder="1234"></div>
+      <div class="setting-row"><label>🔑 パスワード (1〜8けた)</label><input type="password" id="sPin" maxlength="8" inputmode="numeric" value="${pin}" placeholder="1"></div>
     </div>
     <div class="setting-group" style="margin-top:12px;">
       <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
@@ -1078,8 +1093,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       });
       saveProfiles();
       const np = document.getElementById('sPin').value.trim();
-      if (np.length===4 && /^\d{4}$/.test(np)) pin = np;
-      else if (np.length > 0) { alert('パスワードは すうじ4けたで いれてください'); return; }
+      if (np.length >= 1 && np.length <= 8 && /^\d+$/.test(np)) pin = np;
+      else if (np.length > 0) { alert('パスワードは すうじ1〜8けたで いれてください'); return; }
       saveSettings(); savePin();
       // 言語
       const newLang = document.getElementById('sLang').value;
