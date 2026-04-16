@@ -549,9 +549,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const d = new Date();
     const dow = DOW_NAMES[d.getDay()];
     const el = document.getElementById('dateWeather');
-    let t = (d.getMonth()+1)+'がつ '+d.getDate()+'にち '+dow+'ようび';
-    if (w) t += '　'+w.emoji+' '+w.temp+'℃ '+w.text;
-    el.textContent = t;
+    let txt = (d.getMonth()+1)+'がつ '+d.getDate()+'にち '+dow+'ようび';
+    if (w) txt += '　'+w.emoji+' '+w.temp+'℃ '+w.text;
+    el.textContent = txt;
   }
 
   // === Kid Mode ===
@@ -738,7 +738,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     document.getElementById('ptTime').textContent=t('timetable');
     document.getElementById('ptHist').textContent=t('history');
     document.getElementById('ptSet').textContent=t('settingsLabel');
-    document.querySelectorAll('.parent-tab').forEach(tb=>tb.classList.toggle('active',tb.dataset.tab===currentTab));
+    document.querySelectorAll('.parent-tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===currentTab));
     const body=document.getElementById('parentBody'); body.innerHTML='';
     if (currentTab==='manage') renderManage(body);
     else if (currentTab==='timetable') renderTimetable(body);
@@ -1123,7 +1123,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   document.getElementById('goParent').addEventListener('click',()=>showPin(showParent));
   document.getElementById('kidBack').addEventListener('click',()=>{ showScreen('top-screen'); renderTop(); });
   document.getElementById('parentBack').addEventListener('click',()=>{editingId=null;showScreen('top-screen');renderTop();});
-  document.querySelectorAll('.parent-tab').forEach(t=>t.addEventListener('click',()=>{currentTab=t.dataset.tab;editingId=null;renderParentTab();}));
+  document.querySelectorAll('.parent-tab').forEach(tab=>tab.addEventListener('click',()=>{currentTab=tab.dataset.tab;editingId=null;renderParentTab();}));
 
   // === Swipe nav: 右スワイプ=戻る, 左スワイプ=進む ===
   function addSwipeNav(screenEl, opts) {
@@ -1198,7 +1198,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   // === Notifications ===
   let notifyTimers = [];
   function setupNotifications() {
-    notifyTimers.forEach(t => clearTimeout(t));
+    notifyTimers.forEach(tm => clearTimeout(tm));
     notifyTimers = [];
     if (!('Notification' in window)) return;
     if (Notification.permission === 'default') {
@@ -1229,9 +1229,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const d = new Date();
     const dow = DOW_NAMES[d.getDay()];
     const el = document.getElementById('topDateWeather');
-    let t = (d.getMonth()+1)+'がつ '+d.getDate()+'にち '+dow+'ようび';
-    if (w) t += '　'+w.emoji+' '+w.temp+'℃ '+w.text;
-    el.textContent = t;
+    let txt = (d.getMonth()+1)+'がつ '+d.getDate()+'にち '+dow+'ようび';
+    if (w) txt += '　'+w.emoji+' '+w.temp+'℃ '+w.text;
+    el.textContent = txt;
   }
   load(); dailyReset(); renderTop(); renderDateWeatherTop(null);
   fetchWeather().then(w=>{if(w)renderDateWeatherTop(w);});
