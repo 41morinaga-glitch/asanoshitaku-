@@ -372,7 +372,11 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const kidEl = document.getElementById('kid-screen');
     kidEl.classList.remove('mode-asa','mode-kaeri');
     kidEl.classList.add(kidMode==='asa' ? 'mode-asa' : 'mode-kaeri');
-    document.getElementById('kidTitle').textContent = kidMode==='asa' ? '🎒 あさのじゅんび' : '🏠 もちかえりチェック';
+    const d = new Date();
+    const dow = DOW_NAMES[d.getDay()];
+    const dateStr = (d.getMonth()+1)+'/' + d.getDate() + '(' + dow + ')';
+    const modeLabel = kidMode==='asa' ? '🎒 あさのじゅんび' : '🏠 もちかえりチェック';
+    document.getElementById('kidTitle').textContent = dateStr + '  ' + modeLabel;
     const active = todayItems();
     const checkedArr = getCheckedArr();
     const grid = document.getElementById('itemGrid');
