@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#FFF3E0">
+<meta name="theme-color" content="#FF7043">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎒</text></svg>">
 <title>あさのじゅんび</title>
 <style>
 :root {
@@ -302,21 +304,21 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     <button style="visibility:hidden;">←</button>
   </div>
   <div class="parent-tabs">
-    <button class="parent-tab active" data-tab="manage">もちもの</button>
-    <button class="parent-tab" data-tab="timetable">じかんわり</button>
-    <button class="parent-tab" data-tab="history">りれき</button>
-    <button class="parent-tab" data-tab="settings">せってい</button>
+    <button class="parent-tab active" data-tab="manage" id="ptManage">もちもの</button>
+    <button class="parent-tab" data-tab="timetable" id="ptTime">じかんわり</button>
+    <button class="parent-tab" data-tab="history" id="ptHist">りれき</button>
+    <button class="parent-tab" data-tab="settings" id="ptSet">せってい</button>
   </div>
   <div class="parent-body" id="parentBody"></div>
 </div>
 
 <!-- Bottom Nav (scroll down to show) -->
 <div class="bottom-nav" id="bottomNav">
-  <button id="bnAsa"><span class="bnav-icon">🎒</span><span class="bnav-label">じゅんび</span></button>
-  <button id="bnKaeri"><span class="bnav-icon">🏠</span><span class="bnav-label">もちかえり</span></button>
-  <button id="bnParent"><span class="bnav-icon">🔒</span><span class="bnav-label">おや</span></button>
-  <button id="bnHow"><span class="bnav-icon">📖</span><span class="bnav-label">つかいかた</span></button>
-  <button id="bnTop"><span class="bnav-icon">⬆️</span><span class="bnav-label">うえへ</span></button>
+  <button id="bnAsa"><span class="bnav-icon">🎒</span><span class="bnav-label" id="bnAsaL">じゅんび</span></button>
+  <button id="bnKaeri"><span class="bnav-icon">🏠</span><span class="bnav-label" id="bnKaeriL">もちかえり</span></button>
+  <button id="bnParent"><span class="bnav-icon">🔒</span><span class="bnav-label" id="bnParentL">おや</span></button>
+  <button id="bnHow"><span class="bnav-icon">📖</span><span class="bnav-label" id="bnHowL">つかいかた</span></button>
+  <button id="bnTop"><span class="bnav-icon">⬆️</span><span class="bnav-label" id="bnTopL">うえへ</span></button>
 </div>
 
 <div id="celebration">
@@ -329,6 +331,57 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
 <script>
 (function() {
+  // === i18n ===
+  const I18N = {
+    ja: {
+      morning:'おはよう', afternoon:'こんにちは', evening:'おかえり',
+      morningPrep:'あさの じゅんび', returnCheck:'もちかえり チェック', parentMode:'おやモード',
+      prepOK:'じゅんびOK！', returnOK:'もちかえりOK！',
+      howToUse:'つかいかた', goUp:'うえへ', prep:'じゅんび', bringBack:'もちかえり', parent:'おや',
+      perfect:'かんぺき！', allDone:'ぜんぶ できたよ！',
+      todaySchedule:'きょうの じかんわり：',
+      streakDays:'にち れんぞく かんぺき！', weeklyReport:'しゅうかん レポート',
+      thisWeek:'こんしゅう', lastWeek:'せんしゅう', achieveRate:'たっせいりつ',
+      items:'もちもの', timetable:'じかんわり', history:'りれき', settingsLabel:'せってい',
+      name:'おなまえ', voice:'おとの よみあげ', on:'オン', off:'オフ',
+      morningNotify:'あさの つうち', eveningNotify:'ゆうがたの つうち',
+      password:'パスワード (4けた)', profiles:'プロフィール', addChild:'こどもを ついか',
+      save:'ほぞん', saved:'ほぞんしました！', resetAll:'すべてのデータをリセット',
+      addNew:'あたらしく ついか', delete:'けす', edit:'へんしゅう', cancel:'キャンセル',
+      back:'もどる', photo:'しゃしんで ついか', choosePhoto:'しゃしんをえらぶ',
+      orIcon:'または アイコンをえらぶ', itemName:'もちものの なまえ', daysToTake:'もっていく ようび',
+      lang:'🌐 ことば / Language',
+      weatherUmbrella:'かさ を もっていこう！', weatherWarm:'あたたかい ふく', weatherHat:'ぼうし・すいとう',
+      celebVoiceAsa:'やったね。ぜんぶ じゅんびできたよ。かんぺき。', celebVoiceKaeri:'おかえり。ぜんぶ もちかえれたね。えらい。',
+      greetMsgDay:'きょうも がんばろうね。', greetMsgNight:'きょうも よく がんばったね。',
+    },
+    en: {
+      morning:'Good morning', afternoon:'Hello', evening:'Welcome back',
+      morningPrep:'Morning Prep', returnCheck:'Bring-back Check', parentMode:'Parent Mode',
+      prepOK:'Ready!', returnOK:'Got it!',
+      howToUse:'How to use', goUp:'Top', prep:'Prep', bringBack:'Return', parent:'Parent',
+      perfect:'Perfect!', allDone:'Everything is done!',
+      todaySchedule:"Today's classes: ",
+      streakDays:' days perfect streak!', weeklyReport:'Weekly Report',
+      thisWeek:'This week', lastWeek:'Last week', achieveRate:'Achievement',
+      items:'Items', timetable:'Timetable', history:'History', settingsLabel:'Settings',
+      name:'Name', voice:'Voice', on:'On', off:'Off',
+      morningNotify:'Morning alert', eveningNotify:'Evening alert',
+      password:'Password (4 digits)', profiles:'Profiles', addChild:'Add child',
+      save:'Save', saved:'Saved!', resetAll:'Reset all data',
+      addNew:'Add new', delete:'Delete', edit:'Edit', cancel:'Cancel',
+      back:'Back', photo:'Add by photo', choosePhoto:'Choose photo',
+      orIcon:'Or choose icon', itemName:'Item name', daysToTake:'Days to bring',
+      lang:'🌐 ことば / Language',
+      weatherUmbrella:'Bring an umbrella!', weatherWarm:'Wear warm clothes', weatherHat:'Bring hat & water',
+      celebVoiceAsa:'Great job! Everything is ready!', celebVoiceKaeri:'Welcome back! You brought everything!',
+      greetMsgDay:'Let\'s do our best today!', greetMsgNight:'Great job today!',
+    }
+  };
+
+  let lang = localStorage.getItem('asajunbi_lang') || 'ja';
+  function t(key) { return (I18N[lang] || I18N.ja)[key] || (I18N.ja)[key] || key; }
+
   const KEYS = { items:'asajunbi_items2', today:'asajunbi_today', history:'asajunbi_history', pin:'asajunbi_pin', settings:'asajunbi_settings', badges:'asajunbi_badges', timetable:'asajunbi_timetable', profiles:'asajunbi_profiles', currentProfile:'asajunbi_curprofile' };
 
   const SUBJECT_LIST = [
@@ -511,13 +564,13 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const d = new Date();
     const dow = DOW_NAMES[d.getDay()];
     const dateStr = (d.getMonth()+1)+'/' + d.getDate() + '(' + dow + ')';
-    const modeLabel = kidMode==='asa' ? '🎒 あさのじゅんび' : '🏠 もちかえりチェック';
+    const modeLabel = kidMode==='asa' ? '🎒 '+t('morningPrep') : '🏠 '+t('returnCheck');
     document.getElementById('kidTitle').textContent = dateStr + '  ' + modeLabel;
     const active = todayItems();
     const checkedArr = getCheckedArr();
     const grid = document.getElementById('itemGrid');
     grid.innerHTML = '';
-    const stampText = kidMode === 'asa' ? 'じゅんびOK！' : 'もちかえりOK！';
+    const stampText = kidMode === 'asa' ? t('prepOK') : t('returnOK');
     active.forEach((item,i) => {
       const done = checkedArr.includes(item.id);
       const card = document.createElement('div');
@@ -565,7 +618,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     document.getElementById('celebMsg').textContent = CELEB_MSGS[Math.floor(Math.random()*CELEB_MSGS.length)];
     cel.classList.add('show');
     spawnConfetti(); playCelebSound();
-    const celebVoice = kidMode === 'asa' ? 'やったね。ぜんぶ じゅんびできたよ。かんぺき。' : 'おかえり。ぜんぶ もちかえれたね。えらい。';
+    const celebVoice = kidMode === 'asa' ? t('celebVoiceAsa') : t('celebVoiceKaeri');
     speakJa(celebVoice);
     setTimeout(()=>cel.classList.remove('show'), 4500);
     cel.addEventListener('click', ()=>cel.classList.remove('show'), {once:true});
@@ -681,7 +734,11 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   // === Parent Mode ===
   function showParent() { showScreen('parent-screen'); renderParentTab(); }
   function renderParentTab() {
-    document.querySelectorAll('.parent-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===currentTab));
+    document.getElementById('ptManage').textContent=t('items');
+    document.getElementById('ptTime').textContent=t('timetable');
+    document.getElementById('ptHist').textContent=t('history');
+    document.getElementById('ptSet').textContent=t('settingsLabel');
+    document.querySelectorAll('.parent-tab').forEach(tb=>tb.classList.toggle('active',tb.dataset.tab===currentTab));
     const body=document.getElementById('parentBody'); body.innerHTML='';
     if (currentTab==='manage') renderManage(body);
     else if (currentTab==='timetable') renderTimetable(body);
@@ -907,8 +964,17 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
         <div id="profileManage" style="width:100%;"></div>
       </div>
     </div>
-    <button class="btn btn-primary" id="sSave">ほぞん</button>
-    <button class="btn btn-danger" id="sReset">すべてのデータをリセット</button>`;
+    <div class="setting-group">
+      <div class="setting-row">
+        <label>${t('lang')}</label>
+        <select id="sLang" style="padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+          <option value="ja" ${lang==='ja'?'selected':''}>🇯🇵 にほんご</option>
+          <option value="en" ${lang==='en'?'selected':''}>🇬🇧 English</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="sSave">${t('save')}</button>
+    <button class="btn btn-danger" id="sReset">${t('resetAll')}</button>`;
     document.getElementById('sVoiceToggle').addEventListener('click', () => {
       settings.voiceEnabled = !settings.voiceEnabled;
       saveSettings();
@@ -962,9 +1028,12 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       if (np.length===4 && /^\d{4}$/.test(np)) pin = np;
       else if (np.length > 0) { alert('パスワードは すうじ4けたで いれてください'); return; }
       saveSettings(); savePin();
+      // 言語
+      const newLang = document.getElementById('sLang').value;
+      if (newLang !== lang) { lang = newLang; localStorage.setItem('asajunbi_lang', lang); }
       // 通知設定
       setupNotifications();
-      alert('ほぞんしました！');
+      alert(t('saved'));
       renderKid();
     });
     document.getElementById('sReset').addEventListener('click',()=>{if(!confirm('ぜんぶのデータを けしますか？'))return;if(!confirm('ほんとうに いいですか？'))return;Object.values(KEYS).forEach(k=>localStorage.removeItem(k));location.reload();});
@@ -972,10 +1041,20 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
   // === TOP Screen ===
   let lastGreetTime = 0;
+  function updateI18nLabels() {
+    const e=document.getElementById.bind(document);
+    if(e('bnAsaL'))e('bnAsaL').textContent=t('prep');
+    if(e('bnKaeriL'))e('bnKaeriL').textContent=t('bringBack');
+    if(e('bnParentL'))e('bnParentL').textContent=t('parent');
+    if(e('bnHowL'))e('bnHowL').textContent=t('howToUse');
+    if(e('bnTopL'))e('bnTopL').textContent=t('goUp');
+  }
+
   function renderTop(speak) {
+    updateI18nLabels();
     const hour = new Date().getHours();
     const ge = hour<10?'🌅':hour<17?'☀️':'🏠';
-    const gw = hour<10?'おはよう':hour<17?'こんにちは':'おかえり';
+    const gw = hour<10?t('morning'):hour<17?t('afternoon'):t('evening');
     const nm = settings.childName || '';
     const nmDisp = nm ? nm+'ちゃん' : '';
     document.getElementById('topGreet').textContent = ge+' '+gw+'！'+nmDisp;
@@ -1003,7 +1082,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       const now = Date.now();
       if (now - lastGreetTime > 30000) {
         lastGreetTime = now;
-        const msg = hour<17 ? 'きょうも がんばろうね。' : 'きょうも よく がんばったね。';
+        const msg = hour<17 ? t('greetMsgDay') : t('greetMsgNight');
         const voice = nm ? gw+'。'+nm+'ちゃん。'+msg : gw+'。'+msg;
         setTimeout(() => speakJa(voice), 300);
       }
@@ -1157,6 +1236,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   load(); dailyReset(); renderTop(); renderDateWeatherTop(null);
   fetchWeather().then(w=>{if(w)renderDateWeatherTop(w);});
   setupNotifications();
+  // PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 })();
 </script>
 </body>
