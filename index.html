@@ -700,8 +700,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   let lastGreetTime = 0;
   function renderTop(speak) {
     const hour = new Date().getHours();
-    const ge = hour<10?'🌅':hour<17?'☀️':'🌙';
-    const gw = hour<10?'おはよう':hour<17?'こんにちは':'こんばんは';
+    const ge = hour<10?'🌅':hour<17?'☀️':'🏠';
+    const gw = hour<10?'おはよう':hour<17?'こんにちは':'おかえり';
     const nm = settings.childName || '';
     const nmDisp = nm ? nm+'ちゃん' : '';
     document.getElementById('topGreet').textContent = ge+' '+gw+'！'+nmDisp;
@@ -717,7 +717,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       const now = Date.now();
       if (now - lastGreetTime > 30000) {
         lastGreetTime = now;
-        const voice = nm ? gw+'。'+nm+'ちゃん。きょうも がんばろうね。' : gw+'。きょうも がんばろうね。';
+        const msg = hour<17 ? 'きょうも がんばろうね。' : 'きょうも よく がんばったね。';
+        const voice = nm ? gw+'。'+nm+'ちゃん。'+msg : gw+'。'+msg;
         setTimeout(() => speakJa(voice), 300);
       }
     }
