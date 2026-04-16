@@ -67,6 +67,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .wr-bar-fill { flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
 .wr-bar-inner { height: 100%; border-radius: 4px; transition: width 0.5s; }
 
+/* Parent tabs responsive */
+.parent-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.parent-tab { white-space: nowrap; min-width: 0; flex-shrink: 0; padding: 12px 10px; font-size: 12px; }
+
 /* How to */
 .how-to { width: 100%; max-width: 360px; margin-top: 12px; }
 .how-toggle { display: block; margin: 0 auto; padding: 12px 28px; border-radius: 20px; border: 2px solid #FFE0B2; background: #FFF8F0; color: var(--accent); font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(255,112,67,0.15); }
@@ -210,6 +214,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     <h1 id="topGreet">🌅 おはよう！</h1>
     <p id="topDateWeather">よみこみちゅう...</p>
   </div>
+  <div id="profileBar" style="display:flex;gap:6px;margin-bottom:10px;max-width:360px;width:100%;flex-wrap:wrap;justify-content:center;"></div>
   <div class="top-menu">
     <button class="top-btn top-asa" id="goAsa">
       <span class="top-icon">🎒</span>
@@ -278,6 +283,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     </div>
   </div>
   <div id="weatherSuggest"></div>
+  <div id="todaySubjects"></div>
   <div class="item-grid" id="itemGrid"></div>
 </div>
 
@@ -297,6 +303,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   </div>
   <div class="parent-tabs">
     <button class="parent-tab active" data-tab="manage">もちもの</button>
+    <button class="parent-tab" data-tab="timetable">じかんわり</button>
     <button class="parent-tab" data-tab="history">りれき</button>
     <button class="parent-tab" data-tab="settings">せってい</button>
   </div>
@@ -322,7 +329,14 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
 <script>
 (function() {
-  const KEYS = { items:'asajunbi_items2', today:'asajunbi_today', history:'asajunbi_history', pin:'asajunbi_pin', settings:'asajunbi_settings', badges:'asajunbi_badges' };
+  const KEYS = { items:'asajunbi_items2', today:'asajunbi_today', history:'asajunbi_history', pin:'asajunbi_pin', settings:'asajunbi_settings', badges:'asajunbi_badges', timetable:'asajunbi_timetable', profiles:'asajunbi_profiles', currentProfile:'asajunbi_curprofile' };
+
+  const SUBJECT_LIST = [
+    {emoji:'📖',name:'こくご'},{emoji:'🔢',name:'さんすう'},{emoji:'🌍',name:'せいかつ'},{emoji:'🎵',name:'おんがく'},
+    {emoji:'🎨',name:'ずこう'},{emoji:'🏃',name:'たいいく'},{emoji:'🌱',name:'りか'},{emoji:'🗾',name:'しゃかい'},
+    {emoji:'🔤',name:'えいご'},{emoji:'✍️',name:'しょしゃ'},{emoji:'📐',name:'さんすう(図形)'},{emoji:'💻',name:'プログラミング'},
+    {emoji:'📚',name:'どくしょ'},{emoji:'🧹',name:'そうじ'},{emoji:'🍱',name:'きゅうしょく'},{emoji:'🎭',name:'がっかつ'}
+  ];
 
   const BADGE_DEFS = [
     { id:'first', emoji:'⭐', name:'はじめての かんぺき', check: (s,h) => h.some(x=>x.allDone) || s.firstDone },
@@ -377,8 +391,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     '{name}。かえってきたね。', '{name}、オッケー。', '{name}、あったね。'
   ];
 
-  let items=[], today={date:'',checked:[],returnChecked:[]}, history=[], pin='1234', settings={childName:'',voiceEnabled:true};
-  let badges = []; // earned badge IDs
+  let items=[], today={date:'',checked:[],returnChecked:[]}, history=[], pin='1234', settings={childName:'',voiceEnabled:true,notifyMorning:'',notifyEvening:''};
+  let badges=[], timetable={}, profiles=[], currentProfileId='default';
   let currentTab='manage', calMonth=null, pinBuffer='', editingId=null;
   let kidMode = 'asa'; // 'asa' or 'kaeri'
 
@@ -402,6 +416,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     try { settings = JSON.parse(localStorage.getItem(KEYS.settings)) || {childName:'',voiceEnabled:true}; } catch(e) { settings={childName:'',voiceEnabled:true}; }
     if (settings.voiceEnabled === undefined) settings.voiceEnabled = true;
     try { badges = JSON.parse(localStorage.getItem(KEYS.badges)) || []; } catch(e) { badges=[]; }
+    try { timetable = JSON.parse(localStorage.getItem(KEYS.timetable)) || {}; } catch(e) { timetable={}; }
+    try { profiles = JSON.parse(localStorage.getItem(KEYS.profiles)) || []; } catch(e) { profiles=[]; }
+    if (!profiles.length) profiles = [{id:'default',name:settings.childName||'',emoji:'👧'}];
+    try { currentProfileId = localStorage.getItem(KEYS.currentProfile) || 'default'; } catch(e) { currentProfileId='default'; }
   }
   function saveItems() { localStorage.setItem(KEYS.items, JSON.stringify(items)); }
   function saveBadges() { localStorage.setItem(KEYS.badges, JSON.stringify(badges)); }
@@ -409,6 +427,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   function saveHistory() { localStorage.setItem(KEYS.history, JSON.stringify(history)); }
   function savePin() { localStorage.setItem(KEYS.pin, pin); }
   function saveSettings() { localStorage.setItem(KEYS.settings, JSON.stringify(settings)); }
+  function saveTimetable() { localStorage.setItem(KEYS.timetable, JSON.stringify(timetable)); }
+  function saveProfiles() { localStorage.setItem(KEYS.profiles, JSON.stringify(profiles)); }
+  function saveCurrentProfile() { localStorage.setItem(KEYS.currentProfile, currentProfileId); }
 
   function dailyReset() {
     const d = todayStr();
@@ -514,7 +535,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const pct = total ? Math.round(done/total*100) : 0;
     document.getElementById('progressFill').style.width = pct+'%';
     document.getElementById('progressText').textContent = done+' / '+total;
-    if (kidMode === 'asa') renderWeatherSuggest();
+    if (kidMode === 'asa') { renderWeatherSuggest(); renderTodaySubjects(); }
+    else { document.getElementById('weatherSuggest').innerHTML=''; document.getElementById('todaySubjects').innerHTML=''; }
     else document.getElementById('weatherSuggest').innerHTML = '';
   }
 
@@ -603,6 +625,19 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     el.innerHTML = suggestions.map(s => '<div class="weather-suggest"><span class="ws-icon">'+s.emoji+'</span>きょうは '+s.label+' を もっていこう！</div>').join('');
   }
 
+  // === Today's Subjects ===
+  function renderTodaySubjects() {
+    const el = document.getElementById('todaySubjects');
+    if (!el) return;
+    const dow = String(todayDow());
+    const subjects = timetable[dow] || [];
+    if (!subjects.length) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:4px;padding:0 0 8px;align-items:center;">' +
+      '<span style="font-size:11px;font-weight:700;color:var(--text-light);margin-right:4px;">📝 きょうの じかんわり：</span>' +
+      subjects.map(s => '<span style="padding:3px 8px;background:#fff;border:1px solid #eee;border-radius:8px;font-size:11px;font-weight:600;">' + s.emoji + ' ' + s.name + '</span>').join('') +
+      '</div>';
+  }
+
   // === Weekly Report (for parent history) ===
   function getWeekStats(weeksAgo) {
     const now = new Date();
@@ -649,6 +684,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     document.querySelectorAll('.parent-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===currentTab));
     const body=document.getElementById('parentBody'); body.innerHTML='';
     if (currentTab==='manage') renderManage(body);
+    else if (currentTab==='timetable') renderTimetable(body);
     else if (currentTab==='history') renderHistory(body);
     else if (currentTab==='settings') renderSettings(body);
   }
@@ -754,6 +790,53 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
   function swapOrder(a,b) { const x=items.find(i=>i.id===a),y=items.find(i=>i.id===b); if(x&&y){const t=x.order;x.order=y.order;y.order=t;saveItems();} }
 
+  // === Timetable ===
+  function renderTimetable(body) {
+    body.innerHTML = '<div style="font-size:13px;color:#999;margin-bottom:12px;">ようびごとに きょうかを せっていできます</div>';
+    [1,2,3,4,5,6,0].forEach(dow => {
+      if (dow === 0 || dow === 6) return; // 土日スキップ
+      const dayKey = String(dow);
+      const subjects = timetable[dayKey] || [];
+      const sec = document.createElement('div');
+      sec.style.cssText = 'background:#fff;border:1px solid #eee;border-radius:12px;padding:12px;margin-bottom:10px;';
+      const hdr = document.createElement('div');
+      hdr.style.cssText = 'font-weight:700;font-size:14px;color:var(--accent);margin-bottom:8px;';
+      hdr.textContent = DOW_NAMES[dow] + 'ようび';
+      sec.appendChild(hdr);
+      // 現在の教科リスト
+      const list = document.createElement('div');
+      list.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;';
+      subjects.forEach((subj, si) => {
+        const tag = document.createElement('span');
+        tag.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#FFF3E0;border-radius:12px;font-size:12px;font-weight:600;';
+        tag.textContent = subj.emoji + ' ' + subj.name;
+        const del = document.createElement('button');
+        del.style.cssText = 'background:none;border:none;color:#D32F2F;font-size:14px;cursor:pointer;padding:0 2px;';
+        del.textContent = '×';
+        del.addEventListener('click', () => { subjects.splice(si, 1); timetable[dayKey] = subjects; saveTimetable(); renderParentTab(); });
+        tag.appendChild(del);
+        list.appendChild(tag);
+      });
+      sec.appendChild(list);
+      // 追加セレクト
+      const addWrap = document.createElement('div');
+      addWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+      SUBJECT_LIST.forEach(subj => {
+        const b = document.createElement('button');
+        b.style.cssText = 'padding:4px 8px;border-radius:8px;border:1px solid #ddd;background:#f9f9f9;font-size:11px;cursor:pointer;';
+        b.textContent = subj.emoji + subj.name;
+        b.addEventListener('click', () => {
+          if (!timetable[dayKey]) timetable[dayKey] = [];
+          timetable[dayKey].push({ emoji: subj.emoji, name: subj.name });
+          saveTimetable(); renderParentTab();
+        });
+        addWrap.appendChild(b);
+      });
+      sec.appendChild(addWrap);
+      body.appendChild(sec);
+    });
+  }
+
   // === History ===
   function renderHistory(body) {
     if(!calMonth){const t=new Date();calMonth=new Date(t.getFullYear(),t.getMonth(),1);}
@@ -799,6 +882,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   // === Settings ===
   function renderSettings(body) {
     const voiceChecked = settings.voiceEnabled ? 'checked' : '';
+    const notifyM = settings.notifyMorning || '';
+    const notifyE = settings.notifyEvening || '';
     body.innerHTML = `
     <div class="setting-group">
       <div class="setting-row"><label>👧 おなまえ</label><input type="text" id="sName" value="${settings.childName}" placeholder="おなまえ"></div>
@@ -806,13 +891,21 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     <div class="setting-group">
       <div class="setting-row">
         <label>🔊 おとの よみあげ</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <button id="sVoiceToggle" style="padding:8px 20px;border-radius:20px;border:2px solid ${settings.voiceEnabled?'#66BB6A':'#ddd'};background:${settings.voiceEnabled?'#E8F5E9':'#f5f5f5'};color:${settings.voiceEnabled?'#2E7D32':'#999'};font-size:14px;font-weight:700;cursor:pointer;">${settings.voiceEnabled?'🔊 オン':'🔇 オフ'}</button>
-        </div>
+        <button id="sVoiceToggle" style="padding:8px 20px;border-radius:20px;border:2px solid ${settings.voiceEnabled?'#66BB6A':'#ddd'};background:${settings.voiceEnabled?'#E8F5E9':'#f5f5f5'};color:${settings.voiceEnabled?'#2E7D32':'#999'};font-size:14px;font-weight:700;cursor:pointer;">${settings.voiceEnabled?'🔊 オン':'🔇 オフ'}</button>
       </div>
     </div>
     <div class="setting-group">
+      <div class="setting-row"><label>⏰ あさの つうち</label><input type="time" id="sNotifyM" value="${notifyM}" style="width:120px;"></div>
+      <div class="setting-row"><label>🌙 ゆうがたの つうち</label><input type="time" id="sNotifyE" value="${notifyE}" style="width:120px;"></div>
+    </div>
+    <div class="setting-group">
       <div class="setting-row"><label>🔑 パスワード (4けた)</label><input type="password" id="sPin" maxlength="4" inputmode="numeric" value="${pin}" placeholder="1234"></div>
+    </div>
+    <div class="setting-group" style="margin-top:12px;">
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+        <label>👨‍👩‍👧‍👦 プロフィール</label>
+        <div id="profileManage" style="width:100%;"></div>
+      </div>
     </div>
     <button class="btn btn-primary" id="sSave">ほぞん</button>
     <button class="btn btn-danger" id="sReset">すべてのデータをリセット</button>`;
@@ -821,12 +914,56 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       saveSettings();
       renderParentTab();
     });
+    // Profile management
+    const pm = document.getElementById('profileManage');
+    profiles.forEach((p,i) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+      row.innerHTML = '<span style="font-size:20px;">'+p.emoji+'</span><input type="text" value="'+(p.name||'')+'" placeholder="なまえ" style="flex:1;padding:6px;border:1px solid #ddd;border-radius:6px;font-size:14px;" data-pid="'+p.id+'">';
+      if (profiles.length > 1) {
+        const del = document.createElement('button');
+        del.style.cssText = 'padding:4px 8px;background:#FFEBEE;border:none;border-radius:6px;color:#D32F2F;font-size:12px;cursor:pointer;';
+        del.textContent = 'けす';
+        del.addEventListener('click', () => {
+          if (!confirm('このプロフィールをけしますか？')) return;
+          profiles.splice(i, 1);
+          saveProfiles();
+          if (currentProfileId === p.id) { switchProfile(profiles[0].id); }
+          renderParentTab();
+        });
+        row.appendChild(del);
+      }
+      pm.appendChild(row);
+    });
+    const addP = document.createElement('button');
+    addP.className = 'btn btn-secondary';
+    addP.style.marginTop = '4px';
+    addP.textContent = '＋ こどもを ついか';
+    addP.addEventListener('click', () => {
+      const emojis = ['👧','👦','👶','🧒','👸','🤴'];
+      const newId = 'p' + Date.now().toString(36);
+      profiles.push({ id: newId, name: '', emoji: emojis[profiles.length % emojis.length] });
+      saveProfiles();
+      renderParentTab();
+    });
+    pm.appendChild(addP);
+
     document.getElementById('sSave').addEventListener('click',()=>{
       settings.childName = document.getElementById('sName').value.trim();
+      settings.notifyMorning = document.getElementById('sNotifyM').value;
+      settings.notifyEvening = document.getElementById('sNotifyE').value;
+      // プロフィール名保存
+      document.querySelectorAll('[data-pid]').forEach(inp => {
+        const p = profiles.find(x => x.id === inp.dataset.pid);
+        if (p) p.name = inp.value.trim();
+      });
+      saveProfiles();
       const np = document.getElementById('sPin').value.trim();
       if (np.length===4 && /^\d{4}$/.test(np)) pin = np;
       else if (np.length > 0) { alert('パスワードは すうじ4けたで いれてください'); return; }
       saveSettings(); savePin();
+      // 通知設定
+      setupNotifications();
       alert('ほぞんしました！');
       renderKid();
     });
@@ -849,6 +986,18 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const total = active.length;
     document.getElementById('topAsaStatus').textContent = total ? asaDone+'/'+total+(asaDone>=total?' ✨かんぺき！':'') : '';
     document.getElementById('topKaeriStatus').textContent = total ? kaeriDone+'/'+total+(kaeriDone>=total?' ✨かんぺき！':'') : '';
+    // プロフィールバー
+    const pbar = document.getElementById('profileBar');
+    if (profiles.length > 1) {
+      pbar.innerHTML = '';
+      profiles.forEach(p => {
+        const b = document.createElement('button');
+        b.style.cssText = 'padding:6px 14px;border-radius:16px;border:2px solid '+(p.id===currentProfileId?'var(--accent)':'#ddd')+';background:'+(p.id===currentProfileId?'#FFF3E0':'#fff')+';font-size:13px;font-weight:700;cursor:pointer;';
+        b.textContent = p.emoji + ' ' + (p.name || 'なまえなし');
+        b.addEventListener('click', () => { switchProfile(p.id); });
+        pbar.appendChild(b);
+      });
+    } else { pbar.innerHTML = ''; }
     // 音声あいさつ(30秒以内の再表示では鳴らさない)
     if (speak !== false) {
       const now = Date.now();
@@ -859,6 +1008,33 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
         setTimeout(() => speakJa(voice), 300);
       }
     }
+  }
+
+  // === Profile switching ===
+  function profileKey(base) { return base + '_' + currentProfileId; }
+  function switchProfile(id) {
+    // 現在のデータを現プロフィール名で保存
+    localStorage.setItem(profileKey(KEYS.items), JSON.stringify(items));
+    localStorage.setItem(profileKey(KEYS.today), JSON.stringify(today));
+    localStorage.setItem(profileKey(KEYS.history), JSON.stringify(history));
+    localStorage.setItem(profileKey(KEYS.badges), JSON.stringify(badges));
+    localStorage.setItem(profileKey(KEYS.timetable), JSON.stringify(timetable));
+    localStorage.setItem(profileKey(KEYS.settings), JSON.stringify(settings));
+    // 切替
+    currentProfileId = id;
+    saveCurrentProfile();
+    // 新プロフィールのデータを読込
+    try { items = JSON.parse(localStorage.getItem(profileKey(KEYS.items))) || []; } catch(e) { items=[]; }
+    if (!items.length) items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+    items.forEach(it => { if (!it.days) it.days = ALL_DAYS.slice(); });
+    try { today = JSON.parse(localStorage.getItem(profileKey(KEYS.today))) || {date:'',checked:[],returnChecked:[]}; } catch(e) { today={date:'',checked:[],returnChecked:[]}; }
+    if (!today.returnChecked) today.returnChecked = [];
+    try { history = JSON.parse(localStorage.getItem(profileKey(KEYS.history))) || []; } catch(e) { history=[]; }
+    try { badges = JSON.parse(localStorage.getItem(profileKey(KEYS.badges))) || []; } catch(e) { badges=[]; }
+    try { timetable = JSON.parse(localStorage.getItem(profileKey(KEYS.timetable))) || {}; } catch(e) { timetable={}; }
+    try { settings = JSON.parse(localStorage.getItem(profileKey(KEYS.settings))) || {childName:'',voiceEnabled:true,notifyMorning:'',notifyEvening:''}; } catch(e) { settings={childName:'',voiceEnabled:true,notifyMorning:'',notifyEvening:''}; }
+    dailyReset();
+    renderTop();
   }
 
   // === Events ===
@@ -940,6 +1116,35 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   });
   document.getElementById('bnTop').addEventListener('click', () => { window.scrollTo({ top:0, behavior:'smooth' }); });
 
+  // === Notifications ===
+  let notifyTimers = [];
+  function setupNotifications() {
+    notifyTimers.forEach(t => clearTimeout(t));
+    notifyTimers = [];
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    if (Notification.permission !== 'granted') return;
+    const now = new Date();
+    [{ key: 'notifyMorning', msg: 'あさの じゅんび を はじめよう！🎒', emoji: '🌅' },
+     { key: 'notifyEvening', msg: 'もちかえり チェック しよう！🏠', emoji: '🌙' }]
+    .forEach(cfg => {
+      const timeStr = settings[cfg.key];
+      if (!timeStr) return;
+      const [h, m] = timeStr.split(':').map(Number);
+      const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+      if (target <= now) target.setDate(target.getDate() + 1);
+      const delay = target - now;
+      if (delay > 0 && delay < 86400000) {
+        notifyTimers.push(setTimeout(() => {
+          new Notification('あさのじゅんび ' + cfg.emoji, { body: cfg.msg, icon: '🎒' });
+          setupNotifications();
+        }, delay));
+      }
+    });
+  }
+
   // === Init ===
   function renderDateWeatherTop(w) {
     const d = new Date();
@@ -951,6 +1156,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   }
   load(); dailyReset(); renderTop(); renderDateWeatherTop(null);
   fetchWeather().then(w=>{if(w)renderDateWeatherTop(w);});
+  setupNotifications();
 })();
 </script>
 </body>
