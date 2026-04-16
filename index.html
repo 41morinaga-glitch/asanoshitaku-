@@ -1018,6 +1018,13 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       renderParentTab();
     });
     // Profile management
+    function saveProfileInputs() {
+      document.querySelectorAll('[data-pid]').forEach(inp => {
+        const p = profiles.find(x => x.id === inp.dataset.pid);
+        if (p) p.name = inp.value.trim();
+      });
+      saveProfiles();
+    }
     const pm = document.getElementById('profileManage');
     profiles.forEach((p,i) => {
       const row = document.createElement('div');
@@ -1029,6 +1036,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
         del.textContent = 'けす';
         del.addEventListener('click', () => {
           if (!confirm('このプロフィールをけしますか？')) return;
+          saveProfileInputs();
           profiles.splice(i, 1);
           saveProfiles();
           if (currentProfileId === p.id) { switchProfile(profiles[0].id); }
@@ -1043,6 +1051,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     addP.style.marginTop = '4px';
     addP.textContent = '＋ こどもを ついか';
     addP.addEventListener('click', () => {
+      saveProfileInputs(); // 入力中の名前を先に保存
       const emojis = ['👧','👦','👶','🧒','👸','🤴'];
       const newId = 'p' + Date.now().toString(36);
       profiles.push({ id: newId, name: '', emoji: emojis[profiles.length % emojis.length] });
@@ -1123,7 +1132,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const hour = new Date().getHours();
     const ge = hour<10?'🌅':hour<17?'☀️':'🏠';
     const gw = hour<10?t('morning'):hour<17?t('afternoon'):t('evening');
-    const nm = settings.childName || '';
+    const curProfile = profiles.find(p => p.id === currentProfileId);
+    const nm = (curProfile && curProfile.name) || settings.childName || '';
     const nmDisp = nm ? nm+'ちゃん' : '';
     document.getElementById('topGreet').textContent = ge+' '+gw+'！'+nmDisp;
     // ステータス表示
