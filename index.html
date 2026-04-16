@@ -47,6 +47,41 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .bottom-nav .bnav-icon { font-size: 20px; }
 .bottom-nav .bnav-label { font-size: 10px; color: #999; font-weight: 600; }
 
+/* Badges */
+.badge-bar { width: 100%; max-width: 360px; margin-top: 14px; background: #fff; border-radius: 16px; border: 1px solid #eee; padding: 12px; }
+.badge-bar h3 { font-size: 13px; color: var(--text-light); margin-bottom: 8px; }
+.badge-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge { display: flex; flex-direction: column; align-items: center; width: 56px; font-size: 9px; color: var(--text-light); text-align: center; }
+.badge .b-icon { font-size: 32px; filter: grayscale(1) opacity(0.3); transition: all 0.3s; }
+.badge.earned .b-icon { filter: none; animation: badgePop 0.5s ease-out; }
+@keyframes badgePop { 0%{transform:scale(0)} 60%{transform:scale(1.3)} 100%{transform:scale(1)} }
+
+/* Mascot */
+.mascot { position: fixed; bottom: 70px; right: 10px; font-size: 48px; z-index: 8; transition: transform 0.3s; pointer-events: none; }
+.mascot.happy { animation: mascotBounce 0.6s ease; }
+@keyframes mascotBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+.mascot-msg { position: fixed; bottom: 120px; right: 8px; background: #fff; border: 2px solid #FFE0B2; border-radius: 12px 12px 0 12px; padding: 6px 10px; font-size: 11px; font-weight: 600; color: var(--text); z-index: 8; opacity: 0; transition: opacity 0.3s; max-width: 140px; }
+.mascot-msg.show { opacity: 1; }
+
+/* Weather suggestion */
+.weather-suggest { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin: 0 0 10px; background: linear-gradient(90deg, #E3F2FD, #BBDEFB); border-radius: 10px; font-size: 12px; font-weight: 600; color: #1565C0; }
+.weather-suggest .ws-icon { font-size: 20px; }
+
+/* Weekly report */
+.weekly-report { background: #fff; border-radius: 12px; border: 1px solid #eee; padding: 14px; margin-bottom: 14px; }
+.weekly-report h4 { font-size: 13px; color: #999; margin-bottom: 10px; }
+.wr-compare { display: flex; gap: 8px; }
+.wr-week { flex: 1; text-align: center; padding: 10px; border-radius: 10px; }
+.wr-week .wr-label { font-size: 11px; color: #999; }
+.wr-week .wr-val { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.wr-this { background: #FFF3E0; }
+.wr-this .wr-val { color: var(--accent); }
+.wr-last { background: #F5F5F5; }
+.wr-last .wr-val { color: #999; }
+.wr-bar { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 11px; color: #999; }
+.wr-bar-fill { flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+.wr-bar-inner { height: 100%; border-radius: 4px; transition: width 0.5s; }
+
 /* How to */
 .how-to { width: 100%; max-width: 360px; margin-top: 20px; }
 .how-toggle { display: block; margin: 0 auto; padding: 10px 24px; border-radius: 20px; border: 2px solid #E0E0E0; background: #fff; color: var(--text-light); font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -206,6 +241,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       <span class="top-label">おやモード</span>
     </button>
   </div>
+  <div class="badge-bar" id="badgeBar"><h3>🏅 ごほうびスタンプ</h3><div class="badge-list" id="badgeList"></div></div>
   <div class="how-to" id="howTo">
     <button class="how-toggle" id="howToggle">📖 つかいかた</button>
     <div class="how-body" id="howBody">
@@ -257,7 +293,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       <div class="progress-text" id="progressText">0 / 0</div>
     </div>
   </div>
+  <div id="weatherSuggest"></div>
   <div class="item-grid" id="itemGrid"></div>
+  <div class="mascot" id="mascot">🐻</div>
+  <div class="mascot-msg" id="mascotMsg"></div>
 </div>
 
 <div class="screen" id="pin-screen">
@@ -301,7 +340,32 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
 <script>
 (function() {
-  const KEYS = { items:'asajunbi_items2', today:'asajunbi_today', history:'asajunbi_history', pin:'asajunbi_pin', settings:'asajunbi_settings' };
+  const KEYS = { items:'asajunbi_items2', today:'asajunbi_today', history:'asajunbi_history', pin:'asajunbi_pin', settings:'asajunbi_settings', badges:'asajunbi_badges' };
+
+  const BADGE_DEFS = [
+    { id:'first', emoji:'⭐', name:'はじめての かんぺき', check: (s,h) => h.some(x=>x.allDone) || s.firstDone },
+    { id:'streak3', emoji:'🔥', name:'3にち れんぞく', check: (s,h) => calcStreakFromHistory(h,s) >= 3 },
+    { id:'streak7', emoji:'💎', name:'1しゅうかん れんぞく', check: (s,h) => calcStreakFromHistory(h,s) >= 7 },
+    { id:'streak14', emoji:'👑', name:'2しゅうかん れんぞく', check: (s,h) => calcStreakFromHistory(h,s) >= 14 },
+    { id:'streak30', emoji:'🏆', name:'1かげつ れんぞく', check: (s,h) => calcStreakFromHistory(h,s) >= 30 },
+    { id:'count10', emoji:'🌟', name:'10かい かんぺき', check: (s,h) => h.filter(x=>x.allDone).length >= 10 },
+    { id:'count50', emoji:'🚀', name:'50かい かんぺき', check: (s,h) => h.filter(x=>x.allDone).length >= 50 },
+    { id:'early', emoji:'🌅', name:'あさ7じまえに かんぺき', check: (s) => s.earlyBird },
+  ];
+
+  const WEATHER_ITEMS = {
+    rain: { emoji:'☂️', label:'かさ' },
+    cold: { emoji:'🧥', label:'あたたかい ふく' },
+    hot: { emoji:'🧢', label:'ぼうし・すいとう' },
+  };
+
+  function calcStreakFromHistory(h, state) {
+    let s = 0;
+    const sorted = [...h].sort((a,b) => b.date.localeCompare(a.date));
+    if (state.todayDone) { s++; }
+    for (const r of sorted) { if (r.allDone) s++; else break; }
+    return s;
+  }
   const DOW_NAMES = ['日','月','火','水','木','金','土'];
   const ALL_DAYS = [0,1,2,3,4,5,6];
   const DEFAULT_ITEMS = [
@@ -332,6 +396,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   ];
 
   let items=[], today={date:'',checked:[],returnChecked:[]}, history=[], pin='1234', settings={childName:'',voiceEnabled:true};
+  let badges = []; // earned badge IDs
   let currentTab='manage', calMonth=null, pinBuffer='', editingId=null;
   let kidMode = 'asa'; // 'asa' or 'kaeri'
 
@@ -354,8 +419,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     try { pin = localStorage.getItem(KEYS.pin) || '1234'; } catch(e) { pin='1234'; }
     try { settings = JSON.parse(localStorage.getItem(KEYS.settings)) || {childName:'',voiceEnabled:true}; } catch(e) { settings={childName:'',voiceEnabled:true}; }
     if (settings.voiceEnabled === undefined) settings.voiceEnabled = true;
+    try { badges = JSON.parse(localStorage.getItem(KEYS.badges)) || []; } catch(e) { badges=[]; }
   }
   function saveItems() { localStorage.setItem(KEYS.items, JSON.stringify(items)); }
+  function saveBadges() { localStorage.setItem(KEYS.badges, JSON.stringify(badges)); }
   function saveToday() { localStorage.setItem(KEYS.today, JSON.stringify(today)); }
   function saveHistory() { localStorage.setItem(KEYS.history, JSON.stringify(history)); }
   function savePin() { localStorage.setItem(KEYS.pin, pin); }
@@ -418,7 +485,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code&timezone=Asia%2FTokyo');
       if (!r.ok) return null;
       const d = await r.json();
-      weatherCache = { emoji:WMO_E[d.current.weather_code]||'🌈', text:WMO_T[d.current.weather_code]||'', temp:Math.round(d.current.temperature_2m), ts:Date.now() };
+      weatherCache = { emoji:WMO_E[d.current.weather_code]||'🌈', text:WMO_T[d.current.weather_code]||'', temp:Math.round(d.current.temperature_2m), code:d.current.weather_code, ts:Date.now() };
       return weatherCache;
     } catch(e) { return null; }
   }
@@ -465,6 +532,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const pct = total ? Math.round(done/total*100) : 0;
     document.getElementById('progressFill').style.width = pct+'%';
     document.getElementById('progressText').textContent = done+' / '+total;
+    updateMascot();
+    if (kidMode === 'asa') renderWeatherSuggest();
+    else document.getElementById('weatherSuggest').innerHTML = '';
   }
 
   function toggleItem(id) {
@@ -481,7 +551,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     saveToday(); renderKid();
     const active = todayItems();
     const doneCount = checkedArr.filter(id => active.some(it=>it.id===id)).length;
-    if (doneCount >= active.length && active.length > 0) setTimeout(showCelebration, 400);
+    if (doneCount >= active.length && active.length > 0) {
+      setTimeout(showCelebration, 400);
+      setTimeout(checkBadges, 1500);
+    }
   }
 
   function showCelebration() {
@@ -509,6 +582,102 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     try { const ctx=new(window.AudioContext||window.webkitAudioContext)();
       [523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.12,ctx.currentTime+i*0.15);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.4);o.start(ctx.currentTime+i*0.15);o.stop(ctx.currentTime+i*0.15+0.4);});
     } catch(e){}
+  }
+
+  // === Badges ===
+  function checkBadges() {
+    const active = todayItems();
+    const todayDone = today.checked.filter(id=>active.some(it=>it.id===id)).length >= active.length && active.length>0;
+    const earlyBird = todayDone && new Date().getHours() < 7;
+    const state = { todayDone, firstDone: todayDone, earlyBird };
+    let newBadge = null;
+    BADGE_DEFS.forEach(bd => {
+      if (badges.includes(bd.id)) return;
+      if (bd.check(state, history)) { badges.push(bd.id); newBadge = bd; }
+    });
+    if (newBadge) {
+      saveBadges();
+      showMascotMsg('🏅 ' + newBadge.name + ' ゲット！');
+      speakJa(newBadge.name + '。すごい。おめでとう。');
+    }
+  }
+
+  function renderBadges() {
+    const list = document.getElementById('badgeList');
+    if (!list) return;
+    list.innerHTML = '';
+    BADGE_DEFS.forEach(bd => {
+      const el = document.createElement('div');
+      el.className = 'badge' + (badges.includes(bd.id) ? ' earned' : '');
+      el.innerHTML = '<span class="b-icon">' + bd.emoji + '</span>' + bd.name;
+      list.appendChild(el);
+    });
+  }
+
+  // === Mascot ===
+  const MASCOT_FACES = ['🐻','🐻‍❄️','🧸'];
+  const MASCOT_MSGS_PROGRESS = ['がんばってるね！','いいかんじ！','あとすこし！','その ちょうし！'];
+  function updateMascot() {
+    const m = document.getElementById('mascot');
+    if (!m) return;
+    const active = todayItems();
+    const arr = getCheckedArr();
+    const done = arr.filter(id => active.some(it=>it.id===id)).length;
+    const total = active.length;
+    if (!total) { m.textContent = '🐻'; return; }
+    const pct = done / total;
+    if (pct >= 1) { m.textContent = '🥳'; m.classList.add('happy'); setTimeout(()=>m.classList.remove('happy'),600); }
+    else if (pct >= 0.5) m.textContent = '😊';
+    else m.textContent = '🐻';
+  }
+  function showMascotMsg(text) {
+    const el = document.getElementById('mascotMsg');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(showMascotMsg._t);
+    showMascotMsg._t = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // === Weather Suggestion ===
+  function renderWeatherSuggest() {
+    const el = document.getElementById('weatherSuggest');
+    if (!el || !weatherCache) { if(el) el.innerHTML=''; return; }
+    const code = weatherCache.code;
+    const temp = weatherCache.temp;
+    const suggestions = [];
+    // Rain
+    if ([51,53,55,56,57,61,63,65,66,67,80,81,82,95,96,99].includes(code)) {
+      suggestions.push(WEATHER_ITEMS.rain);
+    }
+    // Cold
+    if (temp <= 10) suggestions.push(WEATHER_ITEMS.cold);
+    // Hot
+    if (temp >= 28) suggestions.push(WEATHER_ITEMS.hot);
+    if (!suggestions.length) { el.innerHTML=''; return; }
+    el.innerHTML = suggestions.map(s => '<div class="weather-suggest"><span class="ws-icon">'+s.emoji+'</span>きょうは '+s.label+' を もっていこう！</div>').join('');
+  }
+
+  // === Weekly Report (for parent history) ===
+  function getWeekStats(weeksAgo) {
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const thisMonday = new Date(now);
+    thisMonday.setDate(now.getDate() - mondayOffset - weeksAgo * 7);
+    thisMonday.setHours(0,0,0,0);
+    let perfect = 0, total = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(thisMonday);
+      d.setDate(thisMonday.getDate() + i);
+      const ds = d.toLocaleDateString('sv-SE');
+      const active = todayItems();
+      const rec = ds === today.date
+        ? { allDone: today.checked.filter(id=>active.some(it=>it.id===id)).length >= active.length && active.length>0 }
+        : history.find(h => h.date === ds);
+      if (rec) { total++; if (rec.allDone) perfect++; }
+    }
+    return { perfect, total, rate: total ? Math.round(perfect/total*100) : 0 };
   }
 
   // === PIN ===
@@ -645,6 +814,13 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     if(!calMonth){const t=new Date();calMonth=new Date(t.getFullYear(),t.getMonth(),1);}
     const streak=calcStreak();
     if(streak>0){const s=document.createElement('div');s.className='streak-box';s.textContent='🔥 れんぞく '+streak+'にち かんぺき！';body.appendChild(s);}
+    // 週間レポート
+    const thisW = getWeekStats(0), lastW = getWeekStats(1);
+    const wr = document.createElement('div'); wr.className = 'weekly-report';
+    wr.innerHTML = '<h4>📊 しゅうかん レポート</h4><div class="wr-compare"><div class="wr-week wr-this"><div class="wr-label">こんしゅう</div><div class="wr-val">'+thisW.perfect+'/'+thisW.total+'</div></div><div class="wr-week wr-last"><div class="wr-label">せんしゅう</div><div class="wr-val">'+lastW.perfect+'/'+lastW.total+'</div></div></div>'
+      + '<div class="wr-bar"><span>こんしゅう</span><div class="wr-bar-fill"><div class="wr-bar-inner" style="width:'+thisW.rate+'%;background:var(--accent);"></div></div><span>'+thisW.rate+'%</span></div>'
+      + '<div class="wr-bar"><span>せんしゅう</span><div class="wr-bar-fill"><div class="wr-bar-inner" style="width:'+lastW.rate+'%;background:#BDBDBD;"></div></div><span>'+lastW.rate+'%</span></div>';
+    body.appendChild(wr);
     const nav=document.createElement('div');nav.className='cal-nav';
     nav.innerHTML='<button id="hPrev">◀</button><div class="cal-title">'+calMonth.getFullYear()+'ねん '+(calMonth.getMonth()+1)+'がつ</div><button id="hNext">▶</button>';
     body.appendChild(nav);
@@ -728,6 +904,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const total = active.length;
     document.getElementById('topAsaStatus').textContent = total ? asaDone+'/'+total+(asaDone>=total?' ✨かんぺき！':'') : '';
     document.getElementById('topKaeriStatus').textContent = total ? kaeriDone+'/'+total+(kaeriDone>=total?' ✨かんぺき！':'') : '';
+    renderBadges();
     // 音声あいさつ(30秒以内の再表示では鳴らさない)
     if (speak !== false) {
       const now = Date.now();
