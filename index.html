@@ -25,8 +25,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .greeting h1 { font-size: clamp(20px, 5vw, 28px); color: var(--accent); }
 .greeting p { font-size: clamp(13px, 3.2vw, 17px); color: var(--text-light); }
 /* TOP Screen */
-#top-screen { padding: 16px 16px 40px; }
-.top-menu { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; }
+#top-screen { padding: 16px 16px 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+#top-screen .greeting { margin-top: 0; margin-bottom: 16px; }
+.top-menu { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 360px; }
 .top-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 20px; border-radius: 20px; border: none; cursor: pointer; text-align: center; transition: transform 0.15s; width: 100%; }
 .top-btn:active { transform: scale(0.97); }
 .top-icon { font-size: 48px; }
@@ -40,9 +41,25 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .top-parent .top-sub { color: #999; }
 
 /* Kid Header */
-.kid-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 4px; }
-.kid-header button { background: none; border: none; font-size: 14px; color: var(--text-light); cursor: pointer; padding: 6px 4px; }
+.kid-header { display: flex; align-items: center; gap: 8px; padding: 12px; margin-bottom: 4px; border-radius: 0 0 16px 16px; }
+.kid-header button { background: none; border: none; font-size: 14px; cursor: pointer; padding: 6px 4px; }
 .kid-header span { font-size: clamp(16px, 4vw, 20px); font-weight: 700; }
+/* 朝モード色 */
+#kid-screen.mode-asa { background: #FFF8F0; }
+#kid-screen.mode-asa .kid-header { background: linear-gradient(135deg, #FFAB91, #FF7043); color: #fff; }
+#kid-screen.mode-asa .kid-header button { color: rgba(255,255,255,0.8); }
+#kid-screen.mode-asa .item-card { border-color: #FFE0B2; }
+#kid-screen.mode-asa .item-card.done { background: #FFF3E0; border-color: #FF7043; }
+#kid-screen.mode-asa .item-card.done .stamp { background: #FF7043; }
+#kid-screen.mode-asa .progress-fill { background: linear-gradient(90deg, #FFD54F, #FF7043); }
+/* 帰りモード色 */
+#kid-screen.mode-kaeri { background: #F0F7FF; }
+#kid-screen.mode-kaeri .kid-header { background: linear-gradient(135deg, #90CAF9, #42A5F5); color: #fff; }
+#kid-screen.mode-kaeri .kid-header button { color: rgba(255,255,255,0.8); }
+#kid-screen.mode-kaeri .item-card { border-color: #BBDEFB; }
+#kid-screen.mode-kaeri .item-card.done { background: #E3F2FD; border-color: #42A5F5; }
+#kid-screen.mode-kaeri .item-card.done .stamp { background: #42A5F5; }
+#kid-screen.mode-kaeri .progress-fill { background: linear-gradient(90deg, #90CAF9, #42A5F5); }
 .progress-wrap { margin: 4px 0 12px; padding: 0 12px; }
 .progress-bar { height: 20px; background: #F5E6D3; border-radius: 10px; overflow: hidden; position: relative; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, var(--progress-from), var(--progress-to)); border-radius: 10px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
@@ -352,6 +369,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   function getCheckedArr() { return kidMode === 'asa' ? today.checked : today.returnChecked; }
 
   function renderKid() {
+    const kidEl = document.getElementById('kid-screen');
+    kidEl.classList.remove('mode-asa','mode-kaeri');
+    kidEl.classList.add(kidMode==='asa' ? 'mode-asa' : 'mode-kaeri');
     document.getElementById('kidTitle').textContent = kidMode==='asa' ? '🎒 あさのじゅんび' : '🏠 もちかえりチェック';
     const active = todayItems();
     const checkedArr = getCheckedArr();
@@ -363,8 +383,6 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       const card = document.createElement('div');
       card.className = 'item-card'+(done?' done':'')+' entering';
       card.style.animationDelay = (i*0.05)+'s';
-      if (kidMode === 'kaeri') card.style.borderColor = done ? '#42A5F5' : '#BBDEFB';
-      if (kidMode === 'kaeri' && done) card.style.background = '#E3F2FD';
       let iconHtml;
       if (item.photo) iconHtml = '<img class="photo" src="'+item.photo+'">';
       else iconHtml = '<div class="emoji">'+item.emoji+'</div>';
@@ -648,8 +666,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   document.getElementById('parentBack').addEventListener('click',()=>{editingId=null;showScreen('top-screen');renderTop();});
   document.querySelectorAll('.parent-tab').forEach(t=>t.addEventListener('click',()=>{currentTab=t.dataset.tab;editingId=null;renderParentTab();}));
 
-  // === Swipe back (左→右スワイプで前の画面に戻る) ===
-  function addSwipeBack(screenEl, backFn) {
+  // === Swipe nav: 右スワイプ=戻る, 左スワイプ=進む ===
+  function addSwipeNav(screenEl, opts) {
     let sx = 0, sy = 0, tracking = false;
     screenEl.addEventListener('touchstart', e => {
       if (e.touches.length !== 1) { tracking = false; return; }
@@ -659,11 +677,25 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       if (!tracking) return; tracking = false;
       const dx = e.changedTouches[0].clientX - sx;
       const dy = Math.abs(e.changedTouches[0].clientY - sy);
-      if (dx > 80 && dx > dy * 1.5) backFn();
+      const adx = Math.abs(dx);
+      if (adx > 80 && adx > dy * 1.5) {
+        if (dx > 0 && opts.onRight) opts.onRight();
+        if (dx < 0 && opts.onLeft) opts.onLeft();
+      }
     }, { passive: true });
   }
-  addSwipeBack(document.getElementById('kid-screen'), () => { showScreen('top-screen'); renderTop(); });
-  addSwipeBack(document.getElementById('parent-screen'), () => { editingId = null; showScreen('top-screen'); renderTop(); });
+  // TOP: 左スワイプ → 最後に使ったモードのチェック画面へ
+  addSwipeNav(document.getElementById('top-screen'), {
+    onLeft: () => { showScreen('kid-screen'); renderKid(); }
+  });
+  // チェック画面: 右スワイプ → TOP
+  addSwipeNav(document.getElementById('kid-screen'), {
+    onRight: () => { showScreen('top-screen'); renderTop(); }
+  });
+  // おやモード: 右スワイプ → TOP
+  addSwipeNav(document.getElementById('parent-screen'), {
+    onRight: () => { editingId = null; showScreen('top-screen'); renderTop(); }
+  });
 
   // === Init ===
   function renderDateWeatherTop(w) {
