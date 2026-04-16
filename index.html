@@ -1194,7 +1194,11 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     try { badges = JSON.parse(localStorage.getItem(profileKey(KEYS.badges))) || []; } catch(e) { badges=[]; }
     try { timetable = JSON.parse(localStorage.getItem(profileKey(KEYS.timetable))) || {}; } catch(e) { timetable={}; }
     try { settings = JSON.parse(localStorage.getItem(profileKey(KEYS.settings))) || {childName:'',voiceEnabled:true,notifyMorning:'',notifyEvening:''}; } catch(e) { settings={childName:'',voiceEnabled:true,notifyMorning:'',notifyEvening:''}; }
+    // プロフィール名を settings.childName に同期
+    const switched = profiles.find(p => p.id === id);
+    if (switched && switched.name && !settings.childName) settings.childName = switched.name;
     dailyReset();
+    lastGreetTime = 0; // クールダウンリセット → 切替直後に名前を呼ぶ
     renderTop();
   }
 
