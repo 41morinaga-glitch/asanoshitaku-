@@ -590,7 +590,6 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     document.getElementById('progressText').textContent = done+' / '+total;
     if (kidMode === 'asa') { renderWeatherSuggest(); renderTodaySubjects(); }
     else { document.getElementById('weatherSuggest').innerHTML=''; document.getElementById('todaySubjects').innerHTML=''; }
-    else document.getElementById('weatherSuggest').innerHTML = '';
   }
 
   function toggleItem(id) {
