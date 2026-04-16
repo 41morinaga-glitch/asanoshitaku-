@@ -40,6 +40,19 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .top-parent { background: #F5F5F5; color: var(--text); }
 .top-parent .top-sub { color: #999; }
 
+/* How to */
+.how-to { width: 100%; max-width: 360px; margin-top: 20px; }
+.how-toggle { display: block; margin: 0 auto; padding: 10px 24px; border-radius: 20px; border: 2px solid #E0E0E0; background: #fff; color: var(--text-light); font-size: 14px; font-weight: 600; cursor: pointer; }
+.how-toggle:active { background: #F5F5F5; }
+.how-body { display: none; margin-top: 12px; background: #fff; border-radius: 16px; border: 1px solid #eee; padding: 16px; }
+.how-body.show { display: block; animation: cardIn 0.3s ease-out; }
+.how-section { margin-bottom: 16px; }
+.how-section:last-child { margin-bottom: 0; }
+.how-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 2px dashed #FFE0B2; }
+.how-steps { display: flex; flex-direction: column; gap: 8px; }
+.how-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--text); line-height: 1.5; }
+.how-icon { font-size: 22px; flex-shrink: 0; width: 32px; text-align: center; }
+
 /* Kid Header */
 .kid-header { display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 0 0 16px 16px; position: sticky; top: 0; z-index: 10; }
 .kid-header button { background: none; border: none; font-size: 14px; cursor: pointer; padding: 6px 4px; }
@@ -185,6 +198,43 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       <span class="top-icon">🔒</span>
       <span class="top-label">おやモード</span>
     </button>
+  </div>
+  <div class="how-to" id="howTo">
+    <button class="how-toggle" id="howToggle">📖 つかいかた</button>
+    <div class="how-body" id="howBody">
+      <div class="how-section">
+        <div class="how-title">🎒 あさの じゅんび</div>
+        <div class="how-steps">
+          <div class="how-step"><span class="how-icon">👆</span><span>もちものカードを タップすると<br>「じゅんびOK！」になるよ</span></div>
+          <div class="how-step"><span class="how-icon">🎉</span><span>ぜんぶできたら<br>おいわいアニメーション！</span></div>
+        </div>
+      </div>
+      <div class="how-section">
+        <div class="how-title">🏠 もちかえり チェック</div>
+        <div class="how-steps">
+          <div class="how-step"><span class="how-icon">🏫</span><span>がっこうから かえったら<br>もちものが あるか チェック！</span></div>
+          <div class="how-step"><span class="how-icon">👆</span><span>おなじように タップして<br>「もちかえりOK！」</span></div>
+        </div>
+      </div>
+      <div class="how-section">
+        <div class="how-title">📱 そうさほうほう</div>
+        <div class="how-steps">
+          <div class="how-step"><span class="how-icon">👆</span><span>よはくを タップ →<br>あさ ⇄ かえり きりかえ</span></div>
+          <div class="how-step"><span class="how-icon">👆👆</span><span>よはくを ダブルタップ →<br>この がめんに もどる</span></div>
+          <div class="how-step"><span class="how-icon">👉</span><span>みぎスワイプ →<br>この がめんに もどる</span></div>
+        </div>
+      </div>
+      <div class="how-section">
+        <div class="how-title">🔒 おやモード</div>
+        <div class="how-steps">
+          <div class="how-step"><span class="how-icon">🔑</span><span>パスワード(はじめは 1234)で<br>おとなの せっていへ</span></div>
+          <div class="how-step"><span class="how-icon">✏️</span><span>もちものの ついか・へんしゅう<br>しゃしんも つかえるよ</span></div>
+          <div class="how-step"><span class="how-icon">📅</span><span>ようびごとの もちもの せってい</span></div>
+          <div class="how-step"><span class="how-icon">📊</span><span>カレンダーで りれき かくにん</span></div>
+          <div class="how-step"><span class="how-icon">🔊</span><span>おとの オン・オフ せってい</span></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -663,6 +713,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   }
 
   // === Events ===
+  document.getElementById('howToggle').addEventListener('click',()=>{ document.getElementById('howBody').classList.toggle('show'); });
   document.getElementById('goAsa').addEventListener('click',()=>{ kidMode='asa'; showScreen('kid-screen'); renderKid(); });
   document.getElementById('goKaeri').addEventListener('click',()=>{ kidMode='kaeri'; showScreen('kid-screen'); renderKid(); });
   document.getElementById('goParent').addEventListener('click',()=>showPin(showParent));
