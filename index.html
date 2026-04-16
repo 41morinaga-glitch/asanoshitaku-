@@ -24,6 +24,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .greeting { text-align: center; margin-bottom: 6px; }
 .greeting h1 { font-size: clamp(20px, 5vw, 28px); color: var(--accent); }
 .greeting p { font-size: clamp(13px, 3.2vw, 17px); color: var(--text-light); }
+.mode-tabs { display: flex; gap: 6px; margin: 8px 0; }
+.mode-tab { flex: 1; padding: 10px; border-radius: 12px; border: 2px solid #FFE0B2; background: #fff; font-size: clamp(13px, 3.2vw, 15px); font-weight: 700; color: var(--text-light); cursor: pointer; text-align: center; transition: all 0.2s; }
+.mode-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mode-tab[data-mode="kaeri"].active { background: #42A5F5; border-color: #42A5F5; }
 .progress-wrap { margin: 10px 0 16px; padding: 0 4px; }
 .progress-bar { height: 20px; background: #F5E6D3; border-radius: 10px; overflow: hidden; position: relative; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, var(--progress-from), var(--progress-to)); border-radius: 10px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
@@ -134,6 +138,10 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     <h1 id="greetText">🌅 おはよう！</h1>
     <p id="dateWeather">よみこみちゅう...</p>
   </div>
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="modeAsa" data-mode="asa">🎒 あさのじゅんび</button>
+    <button class="mode-tab" id="modeKaeri" data-mode="kaeri">🏠 もちかえりチェック</button>
+  </div>
   <div class="progress-wrap">
     <div class="progress-bar">
       <div class="progress-fill" id="progressFill" style="width:0%"></div>
@@ -197,14 +205,18 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     '🧃','🥤','🥪','📝','💻','📱','🔑','💰','🎾','⚽','🏀','🧸','📷','🩲','🩳','🎿','🪮','🫧','🫙','📦'
   ];
   const CELEB_MSGS = ['すごいね！ぜんぶ じゅんびできたよ！','えらい！きょうも かんぺき！','ばっちり！いってらっしゃい！🌟','さすが！じぶんで できたね！✨','すばらしい！がんばったね！💪'];
-  const VOICE_MSGS = [
-    '{name}、じゅんびできたね！', '{name}、ばっちりだよ！', '{name}、OK！いいかんじ！',
-    '{name}もできたね、えらい！', 'よし！{name}、かんりょう！', '{name}、じょうずにできたね！',
-    '{name}、できたね！すごーい！', '{name}、がんばったね！', '{name}もオッケー！', 'やったね！{name}！'
+  const VOICE_ASA = [
+    '{name}。じゅんびオッケー。', '{name}。できたね。', '{name}、オッケー。',
+    '{name}。ばっちり。', '{name}もオッケー。', '{name}、できた。すごい。'
+  ];
+  const VOICE_KAERI = [
+    '{name}。もちかえりオッケー。', '{name}、ちゃんとあるね。', '{name}もあった。えらい。',
+    '{name}。かえってきたね。', '{name}、オッケー。', '{name}、あったね。'
   ];
 
-  let items=[], today={date:'',checked:[]}, history=[], pin='1234', settings={childName:''};
+  let items=[], today={date:'',checked:[],returnChecked:[]}, history=[], pin='1234', settings={childName:''};
   let currentTab='manage', calMonth=null, pinBuffer='', editingId=null;
+  let kidMode = 'asa'; // 'asa' or 'kaeri'
 
   function uid() { return 'i'+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
   function todayStr() { return new Date().toLocaleDateString('sv-SE'); }
@@ -219,7 +231,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     try { items = JSON.parse(localStorage.getItem(KEYS.items)) || []; } catch(e) { items=[]; }
     if (!items.length) items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
     items.forEach(it => { if (!it.days) it.days = ALL_DAYS.slice(); });
-    try { today = JSON.parse(localStorage.getItem(KEYS.today)) || {date:'',checked:[]}; } catch(e) { today={date:'',checked:[]}; }
+    try { today = JSON.parse(localStorage.getItem(KEYS.today)) || {date:'',checked:[],returnChecked:[]}; } catch(e) { today={date:'',checked:[],returnChecked:[]}; }
+    if (!today.returnChecked) today.returnChecked = [];
     try { history = JSON.parse(localStorage.getItem(KEYS.history)) || []; } catch(e) { history=[]; }
     try { pin = localStorage.getItem(KEYS.pin) || '1234'; } catch(e) { pin='1234'; }
     try { settings = JSON.parse(localStorage.getItem(KEYS.settings)) || {childName:''}; } catch(e) { settings={childName:''}; }
@@ -237,7 +250,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       history.push({ date:today.date, total:ti.length||items.length, completed:today.checked.length, allDone:today.checked.length>= (ti.length||items.length) });
       while (history.length > 90) history.shift();
       saveHistory();
-      today = {date:d, checked:[]};
+      today = {date:d, checked:[], returnChecked:[]};
       saveToday();
     } else if (!today.date) { today.date=d; saveToday(); }
   }
@@ -269,7 +282,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
       const u = new SpeechSynthesisUtterance(text);
       if (!jaVoice) jaVoice = pickJaVoice();
       if (jaVoice) { u.voice = jaVoice; u.lang = jaVoice.lang; } else u.lang = 'ja-JP';
-      u.rate = 1.05; u.pitch = 1.15;
+      u.rate = 1.0; u.pitch = 1.0;
       window.speechSynthesis.speak(u);
     } catch(e) {}
   }
@@ -300,46 +313,57 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   }
 
   // === Kid Mode ===
+  function getCheckedArr() { return kidMode === 'asa' ? today.checked : today.returnChecked; }
+
   function renderKid() {
     const hour = new Date().getHours();
     const ge = hour<10?'🌅':hour<17?'☀️':'🌙';
     const gw = hour<10?'おはよう':hour<17?'こんにちは':'こんばんは';
     const nm = settings.childName ? settings.childName+'ちゃん' : '';
     document.getElementById('greetText').textContent = ge+' '+gw+'！'+nm;
+    // Mode tabs
+    document.getElementById('modeAsa').classList.toggle('active', kidMode==='asa');
+    document.getElementById('modeKaeri').classList.toggle('active', kidMode==='kaeri');
     const active = todayItems();
+    const checkedArr = getCheckedArr();
     const grid = document.getElementById('itemGrid');
     grid.innerHTML = '';
+    const stampText = kidMode === 'asa' ? 'じゅんびOK！' : 'もちかえりOK！';
     active.forEach((item,i) => {
-      const done = today.checked.includes(item.id);
+      const done = checkedArr.includes(item.id);
       const card = document.createElement('div');
       card.className = 'item-card'+(done?' done':'')+' entering';
       card.style.animationDelay = (i*0.05)+'s';
+      if (kidMode === 'kaeri') card.style.borderColor = done ? '#42A5F5' : '#BBDEFB';
+      if (kidMode === 'kaeri' && done) card.style.background = '#E3F2FD';
       let iconHtml;
       if (item.photo) iconHtml = '<img class="photo" src="'+item.photo+'">';
       else iconHtml = '<div class="emoji">'+item.emoji+'</div>';
-      card.innerHTML = iconHtml+'<div class="label">'+item.label+'</div><div class="stamp">じゅんびOK！</div>';
+      card.innerHTML = iconHtml+'<div class="label">'+item.label+'</div><div class="stamp">'+stampText+'</div>';
       card.addEventListener('click', () => toggleItem(item.id));
       grid.appendChild(card);
     });
     const total = active.length;
-    const done = today.checked.filter(id => active.some(it=>it.id===id)).length;
+    const done = checkedArr.filter(id => active.some(it=>it.id===id)).length;
     const pct = total ? Math.round(done/total*100) : 0;
     document.getElementById('progressFill').style.width = pct+'%';
     document.getElementById('progressText').textContent = done+' / '+total;
   }
 
   function toggleItem(id) {
-    const idx = today.checked.indexOf(id);
-    if (idx >= 0) { today.checked.splice(idx,1); }
+    const checkedArr = getCheckedArr();
+    const idx = checkedArr.indexOf(id);
+    if (idx >= 0) { checkedArr.splice(idx,1); }
     else {
-      today.checked.push(id);
+      checkedArr.push(id);
       const item = items.find(x=>x.id===id);
-      const tmpl = VOICE_MSGS[Math.floor(Math.random()*VOICE_MSGS.length)];
+      const msgs = kidMode === 'asa' ? VOICE_ASA : VOICE_KAERI;
+      const tmpl = msgs[Math.floor(Math.random()*msgs.length)];
       speakJa(tmpl.replace('{name}', item ? item.label : ''));
     }
     saveToday(); renderKid();
     const active = todayItems();
-    const doneCount = today.checked.filter(id => active.some(it=>it.id===id)).length;
+    const doneCount = checkedArr.filter(id => active.some(it=>it.id===id)).length;
     if (doneCount >= active.length && active.length > 0) setTimeout(showCelebration, 400);
   }
 
@@ -348,7 +372,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     document.getElementById('celebMsg').textContent = CELEB_MSGS[Math.floor(Math.random()*CELEB_MSGS.length)];
     cel.classList.add('show');
     spawnConfetti(); playCelebSound();
-    speakJa('やったー！ぜんぶじゅんびできたよ！かんぺき！');
+    const celebVoice = kidMode === 'asa' ? 'やったね。ぜんぶ じゅんびできたよ。かんぺき。' : 'おかえり。ぜんぶ もちかえれたね。えらい。';
+    speakJa(celebVoice);
     setTimeout(()=>cel.classList.remove('show'), 4500);
     cel.addEventListener('click', ()=>cel.classList.remove('show'), {once:true});
   }
@@ -544,6 +569,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   document.getElementById('parentLink').addEventListener('click',()=>showPin(showParent));
   document.getElementById('parentBack').addEventListener('click',()=>{editingId=null;showScreen('kid-screen');renderKid();});
   document.querySelectorAll('.parent-tab').forEach(t=>t.addEventListener('click',()=>{currentTab=t.dataset.tab;editingId=null;renderParentTab();}));
+  document.querySelectorAll('.mode-tab').forEach(t=>t.addEventListener('click',()=>{kidMode=t.dataset.mode;renderKid();}));
 
   // === Init ===
   load(); dailyReset(); renderDateWeather(null); renderKid();
