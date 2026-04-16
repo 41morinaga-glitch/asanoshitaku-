@@ -953,8 +953,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   window.addEventListener('scroll', () => {
     const scrollBottom = window.scrollY + window.innerHeight;
     const docHeight = document.documentElement.scrollHeight;
-    // ページ下端から100px以内で表示、上に戻ったら非表示
-    if (scrollBottom >= docHeight - 100) bnav.classList.add('show');
+    // ページの最下端に到達した時のみ表示(誤差5px許容)
+    if (scrollBottom >= docHeight - 5) bnav.classList.add('show');
     else bnav.classList.remove('show');
   }, { passive: true });
   document.getElementById('bnAsa').addEventListener('click', () => { kidMode='asa'; showScreen('kid-screen'); renderKid(); bnav.classList.remove('show'); });
