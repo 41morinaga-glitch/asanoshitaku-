@@ -40,6 +40,13 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .top-parent { background: #F5F5F5; color: var(--text); }
 .top-parent .top-sub { color: #999; }
 
+/* Bottom nav */
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #eee; display: flex; padding: 6px 0 calc(6px + env(safe-area-inset-bottom)); z-index: 50; transform: translateY(100%); transition: transform 0.3s; box-shadow: 0 -2px 10px rgba(0,0,0,0.06); }
+.bottom-nav.show { transform: translateY(0); }
+.bottom-nav button { flex: 1; border: none; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; }
+.bottom-nav .bnav-icon { font-size: 20px; }
+.bottom-nav .bnav-label { font-size: 10px; color: #999; font-weight: 600; }
+
 /* How to */
 .how-to { width: 100%; max-width: 360px; margin-top: 20px; }
 .how-toggle { display: block; margin: 0 auto; padding: 10px 24px; border-radius: 20px; border: 2px solid #E0E0E0; background: #fff; color: var(--text-light); font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -273,6 +280,15 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     <button class="parent-tab" data-tab="settings">せってい</button>
   </div>
   <div class="parent-body" id="parentBody"></div>
+</div>
+
+<!-- Bottom Nav (scroll down to show) -->
+<div class="bottom-nav" id="bottomNav">
+  <button id="bnAsa"><span class="bnav-icon">🎒</span><span class="bnav-label">じゅんび</span></button>
+  <button id="bnKaeri"><span class="bnav-icon">🏠</span><span class="bnav-label">もちかえり</span></button>
+  <button id="bnParent"><span class="bnav-icon">🔒</span><span class="bnav-label">おや</span></button>
+  <button id="bnHow"><span class="bnav-icon">📖</span><span class="bnav-label">つかいかた</span></button>
+  <button id="bnTop"><span class="bnav-icon">⬆️</span><span class="bnav-label">うえへ</span></button>
 </div>
 
 <div id="celebration">
@@ -788,6 +804,27 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   addSwipeNav(document.getElementById('parent-screen'), {
     onRight: () => { editingId = null; showScreen('top-screen'); renderTop(); }
   });
+
+  // === Bottom Nav ===
+  const bnav = document.getElementById('bottomNav');
+  let lastScrollY = 0;
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (y > 100 && y > lastScrollY) bnav.classList.add('show');
+    else if (y < 50) bnav.classList.remove('show');
+    lastScrollY = y;
+  }, { passive: true });
+  document.getElementById('bnAsa').addEventListener('click', () => { kidMode='asa'; showScreen('kid-screen'); renderKid(); bnav.classList.remove('show'); });
+  document.getElementById('bnKaeri').addEventListener('click', () => { kidMode='kaeri'; showScreen('kid-screen'); renderKid(); bnav.classList.remove('show'); });
+  document.getElementById('bnParent').addEventListener('click', () => { showPin(showParent); bnav.classList.remove('show'); });
+  document.getElementById('bnHow').addEventListener('click', () => {
+    showScreen('top-screen'); renderTop(false);
+    bnav.classList.remove('show');
+    const hb = document.getElementById('howBody');
+    if (!hb.classList.contains('show')) hb.classList.add('show');
+    setTimeout(() => hb.scrollIntoView({ behavior:'smooth' }), 100);
+  });
+  document.getElementById('bnTop').addEventListener('click', () => { window.scrollTo({ top:0, behavior:'smooth' }); bnav.classList.remove('show'); });
 
   // === Init ===
   function renderDateWeatherTop(w) {
