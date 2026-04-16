@@ -697,12 +697,14 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   }
 
   // === TOP Screen ===
-  function renderTop() {
+  let lastGreetTime = 0;
+  function renderTop(speak) {
     const hour = new Date().getHours();
     const ge = hour<10?'🌅':hour<17?'☀️':'🌙';
     const gw = hour<10?'おはよう':hour<17?'こんにちは':'こんばんは';
-    const nm = settings.childName ? settings.childName+'ちゃん' : '';
-    document.getElementById('topGreet').textContent = ge+' '+gw+'！'+nm;
+    const nm = settings.childName || '';
+    const nmDisp = nm ? nm+'ちゃん' : '';
+    document.getElementById('topGreet').textContent = ge+' '+gw+'！'+nmDisp;
     // ステータス表示
     const active = todayItems();
     const asaDone = today.checked.filter(id=>active.some(it=>it.id===id)).length;
@@ -710,6 +712,15 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const total = active.length;
     document.getElementById('topAsaStatus').textContent = total ? asaDone+'/'+total+(asaDone>=total?' ✨かんぺき！':'') : '';
     document.getElementById('topKaeriStatus').textContent = total ? kaeriDone+'/'+total+(kaeriDone>=total?' ✨かんぺき！':'') : '';
+    // 音声あいさつ(30秒以内の再表示では鳴らさない)
+    if (speak !== false) {
+      const now = Date.now();
+      if (now - lastGreetTime > 30000) {
+        lastGreetTime = now;
+        const voice = nm ? gw+'。'+nm+'ちゃん。きょうも がんばろうね。' : gw+'。きょうも がんばろうね。';
+        setTimeout(() => speakJa(voice), 300);
+      }
+    }
   }
 
   // === Events ===
