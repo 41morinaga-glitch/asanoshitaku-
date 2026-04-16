@@ -964,7 +964,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const notifyE = settings.notifyEvening || '';
     body.innerHTML = `
     <div class="setting-group">
-      <div class="setting-row"><label>👧 おなまえ</label><input type="text" id="sName" value="${settings.childName}" placeholder="おなまえ"></div>
+      <div class="setting-row"><label>👧 おなまえ</label><input type="text" id="sName" value="${(profiles.find(p=>p.id===currentProfileId)||{}).name || settings.childName || ''}" placeholder="おなまえ"></div>
     </div>
     <div class="setting-group">
       <div class="setting-row">
@@ -1092,7 +1092,11 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     }
 
     document.getElementById('sSave').addEventListener('click',()=>{
-      settings.childName = document.getElementById('sName').value.trim();
+      const newName = document.getElementById('sName').value.trim();
+      settings.childName = newName;
+      // おなまえを現在のプロフィールにも同期
+      const curP = profiles.find(p => p.id === currentProfileId);
+      if (curP) curP.name = newName;
       settings.notifyMorning = document.getElementById('sNotifyM').value;
       settings.notifyEvening = document.getElementById('sNotifyE').value;
       // プロフィール名保存
