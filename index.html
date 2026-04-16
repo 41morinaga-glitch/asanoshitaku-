@@ -27,9 +27,9 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 /* TOP Screen */
 #top-screen { padding: 16px 16px 40px; }
 .top-menu { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; }
-.top-btn { display: flex; align-items: center; gap: 14px; padding: 20px; border-radius: 20px; border: none; cursor: pointer; text-align: left; transition: transform 0.15s; }
+.top-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 24px 20px; border-radius: 20px; border: none; cursor: pointer; text-align: center; transition: transform 0.15s; width: 100%; }
 .top-btn:active { transform: scale(0.97); }
-.top-icon { font-size: 40px; flex-shrink: 0; }
+.top-icon { font-size: 48px; }
 .top-label { font-size: clamp(17px, 4.5vw, 22px); font-weight: 800; display: block; }
 .top-sub { font-size: 12px; font-weight: 500; display: block; margin-top: 2px; }
 .top-asa { background: linear-gradient(135deg, #FFAB91, #FF7043); color: #fff; }
@@ -166,7 +166,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     </button>
     <button class="top-btn top-parent" id="goParent">
       <span class="top-icon">🔒</span>
-      <span class="top-label">おとなモード</span>
+      <span class="top-label">おやモード</span>
     </button>
   </div>
 </div>
@@ -197,7 +197,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 <div class="screen" id="parent-screen">
   <div class="parent-header">
     <button id="parentBack">←</button>
-    <h2>おとなモード</h2>
+    <h2>おやモード</h2>
     <button style="visibility:hidden;">←</button>
   </div>
   <div class="parent-tabs">
@@ -647,6 +647,23 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
   document.getElementById('kidBack').addEventListener('click',()=>{ showScreen('top-screen'); renderTop(); });
   document.getElementById('parentBack').addEventListener('click',()=>{editingId=null;showScreen('top-screen');renderTop();});
   document.querySelectorAll('.parent-tab').forEach(t=>t.addEventListener('click',()=>{currentTab=t.dataset.tab;editingId=null;renderParentTab();}));
+
+  // === Swipe back (左→右スワイプで前の画面に戻る) ===
+  function addSwipeBack(screenEl, backFn) {
+    let sx = 0, sy = 0, tracking = false;
+    screenEl.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) { tracking = false; return; }
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY; tracking = true;
+    }, { passive: true });
+    screenEl.addEventListener('touchend', e => {
+      if (!tracking) return; tracking = false;
+      const dx = e.changedTouches[0].clientX - sx;
+      const dy = Math.abs(e.changedTouches[0].clientY - sy);
+      if (dx > 80 && dx > dy * 1.5) backFn();
+    }, { passive: true });
+  }
+  addSwipeBack(document.getElementById('kid-screen'), () => { showScreen('top-screen'); renderTop(); });
+  addSwipeBack(document.getElementById('parent-screen'), () => { editingId = null; showScreen('top-screen'); renderTop(); });
 
   // === Init ===
   function renderDateWeatherTop(w) {
