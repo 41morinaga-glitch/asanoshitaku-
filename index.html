@@ -954,9 +954,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const y = window.scrollY;
     const scrollBottom = y + window.innerHeight;
     const docHeight = document.documentElement.scrollHeight;
-    const isScrollable = docHeight > window.innerHeight + 50;
-    // スクロール可能なページで、かつ下端到達時のみ表示
-    if (isScrollable && y > 50 && scrollBottom >= docHeight - 5) bnav.classList.add('show');
+    const isScrollable = docHeight > window.innerHeight + 100;
+    if (isScrollable && y > 100 && scrollBottom >= docHeight - 5) bnav.classList.add('show');
     else bnav.classList.remove('show');
   }, { passive: true });
   document.getElementById('bnAsa').addEventListener('click', () => { kidMode='asa'; showScreen('kid-screen'); renderKid(); bnav.classList.remove('show'); });
