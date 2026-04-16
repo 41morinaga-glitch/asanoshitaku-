@@ -214,7 +214,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     '{name}。かえってきたね。', '{name}、オッケー。', '{name}、あったね。'
   ];
 
-  let items=[], today={date:'',checked:[],returnChecked:[]}, history=[], pin='1234', settings={childName:''};
+  let items=[], today={date:'',checked:[],returnChecked:[]}, history=[], pin='1234', settings={childName:'',voiceEnabled:true};
   let currentTab='manage', calMonth=null, pinBuffer='', editingId=null;
   let kidMode = 'asa'; // 'asa' or 'kaeri'
 
@@ -235,7 +235,8 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     if (!today.returnChecked) today.returnChecked = [];
     try { history = JSON.parse(localStorage.getItem(KEYS.history)) || []; } catch(e) { history=[]; }
     try { pin = localStorage.getItem(KEYS.pin) || '1234'; } catch(e) { pin='1234'; }
-    try { settings = JSON.parse(localStorage.getItem(KEYS.settings)) || {childName:''}; } catch(e) { settings={childName:''}; }
+    try { settings = JSON.parse(localStorage.getItem(KEYS.settings)) || {childName:'',voiceEnabled:true}; } catch(e) { settings={childName:'',voiceEnabled:true}; }
+    if (settings.voiceEnabled === undefined) settings.voiceEnabled = true;
   }
   function saveItems() { localStorage.setItem(KEYS.items, JSON.stringify(items)); }
   function saveToday() { localStorage.setItem(KEYS.today, JSON.stringify(today)); }
@@ -276,6 +277,7 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     window.speechSynthesis.addEventListener('voiceschanged', () => { jaVoice = pickJaVoice(); });
   }
   function speakJa(text) {
+    if (!settings.voiceEnabled) return;
     if (!('speechSynthesis' in window)) return;
     try {
       window.speechSynthesis.cancel();
@@ -560,8 +562,38 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 
   // === Settings ===
   function renderSettings(body) {
-    body.innerHTML='<div class="setting-group"><div class="setting-row"><label>👧 おなまえ</label><input type="text" id="sName" value="'+settings.childName+'" placeholder="おなまえ"></div></div><div class="setting-group"><div class="setting-row"><label>🔑 パスワード (4けた)</label><input type="password" id="sPin" maxlength="4" inputmode="numeric" value="'+pin+'" placeholder="1234"></div></div><button class="btn btn-primary" id="sSave">ほぞん</button><button class="btn btn-danger" id="sReset">すべてのデータをリセット</button>';
-    document.getElementById('sSave').addEventListener('click',()=>{settings.childName=document.getElementById('sName').value.trim();const np=document.getElementById('sPin').value.trim();if(np.length===4&&/^\d{4}$/.test(np))pin=np;else if(np.length>0){alert('パスワードは すうじ4けたで いれてください');return;}saveSettings();savePin();alert('ほぞんしました！');renderKid();});
+    const voiceChecked = settings.voiceEnabled ? 'checked' : '';
+    body.innerHTML = `
+    <div class="setting-group">
+      <div class="setting-row"><label>👧 おなまえ</label><input type="text" id="sName" value="${settings.childName}" placeholder="おなまえ"></div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-row">
+        <label>🔊 おとの よみあげ</label>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button id="sVoiceToggle" style="padding:8px 20px;border-radius:20px;border:2px solid ${settings.voiceEnabled?'#66BB6A':'#ddd'};background:${settings.voiceEnabled?'#E8F5E9':'#f5f5f5'};color:${settings.voiceEnabled?'#2E7D32':'#999'};font-size:14px;font-weight:700;cursor:pointer;">${settings.voiceEnabled?'🔊 オン':'🔇 オフ'}</button>
+        </div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <div class="setting-row"><label>🔑 パスワード (4けた)</label><input type="password" id="sPin" maxlength="4" inputmode="numeric" value="${pin}" placeholder="1234"></div>
+    </div>
+    <button class="btn btn-primary" id="sSave">ほぞん</button>
+    <button class="btn btn-danger" id="sReset">すべてのデータをリセット</button>`;
+    document.getElementById('sVoiceToggle').addEventListener('click', () => {
+      settings.voiceEnabled = !settings.voiceEnabled;
+      saveSettings();
+      renderParentTab();
+    });
+    document.getElementById('sSave').addEventListener('click',()=>{
+      settings.childName = document.getElementById('sName').value.trim();
+      const np = document.getElementById('sPin').value.trim();
+      if (np.length===4 && /^\d{4}$/.test(np)) pin = np;
+      else if (np.length > 0) { alert('パスワードは すうじ4けたで いれてください'); return; }
+      saveSettings(); savePin();
+      alert('ほぞんしました！');
+      renderKid();
+    });
     document.getElementById('sReset').addEventListener('click',()=>{if(!confirm('ぜんぶのデータを けしますか？'))return;if(!confirm('ほんとうに いいですか？'))return;Object.values(KEYS).forEach(k=>localStorage.removeItem(k));location.reload();});
   }
 
