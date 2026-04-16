@@ -47,14 +47,6 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
 .bottom-nav .bnav-icon { font-size: 20px; }
 .bottom-nav .bnav-label { font-size: 10px; color: #999; font-weight: 600; }
 
-/* Badges */
-.badge-bar { width: 100%; max-width: 360px; margin-top: 14px; background: #fff; border-radius: 16px; border: 1px solid #eee; padding: 12px; }
-.badge-bar h3 { font-size: 13px; color: var(--text-light); margin-bottom: 8px; }
-.badge-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.badge { display: flex; flex-direction: column; align-items: center; width: 56px; font-size: 9px; color: var(--text-light); text-align: center; }
-.badge .b-icon { font-size: 32px; filter: grayscale(1) opacity(0.3); transition: all 0.3s; }
-.badge.earned .b-icon { filter: none; animation: badgePop 0.5s ease-out; }
-@keyframes badgePop { 0%{transform:scale(0)} 60%{transform:scale(1.3)} 100%{transform:scale(1)} }
 
 
 /* Weather suggestion */
@@ -591,17 +583,6 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     }
   }
 
-  function renderBadges() {
-    const list = document.getElementById('badgeList');
-    if (!list) return;
-    list.innerHTML = '';
-    BADGE_DEFS.forEach(bd => {
-      const el = document.createElement('div');
-      el.className = 'badge' + (badges.includes(bd.id) ? ' earned' : '');
-      el.innerHTML = '<span class="b-icon">' + bd.emoji + '</span>' + bd.name;
-      list.appendChild(el);
-    });
-  }
 
 
   // === Weather Suggestion ===
@@ -869,7 +850,6 @@ body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-are
     const total = active.length;
     document.getElementById('topAsaStatus').textContent = total ? asaDone+'/'+total+(asaDone>=total?' ✨かんぺき！':'') : '';
     document.getElementById('topKaeriStatus').textContent = total ? kaeriDone+'/'+total+(kaeriDone>=total?' ✨かんぺき！':'') : '';
-    renderBadges();
     // 音声あいさつ(30秒以内の再表示では鳴らさない)
     if (speak !== false) {
       const now = Date.now();
